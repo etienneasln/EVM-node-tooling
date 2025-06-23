@@ -9,7 +9,6 @@ pub struct Blueprint{
     pub id: i32,
     pub payload:Vec<u8>,
     pub timestamp:i32
-
 }
 
 impl Blueprint{
@@ -82,7 +81,9 @@ pub struct NewBlueprint{
 
 #[cfg(test)]
 mod query_tests{
-    use crate::dieselsqlite::{establish_connection, TOP_LEVEL};
+    use crate::dieselsqlite::{establish_connection};
+    // pub const BASE_LEVEL:i32=19595657;
+    pub const TOP_LEVEL:i32=19630993;
 
     use super::*;
 
