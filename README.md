@@ -11,3 +11,4 @@ octez-evm-node --network=testnet ...
 ```  
 2.Copy the ``store.sqlite`` file created following this execution and paste it in the repository's root directory.  
 3.Modify the ``.env`` file to match the SQLite file's location.  
+4. (optional) Modify hard-coded values in the tests in ``src/dieselsqlite/models.rs``to reflect the bottom and top block id in the database.  
