@@ -1,5 +1,5 @@
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, Result};
-use evmnodetooling::dieselsqlite::{establish_connection,models::{Blueprint}};
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
+use evmnodetooling::dieselsqlite::{establish_connection,models::{Blueprint,Block}};
 use serde::{Deserialize,Serialize};
 
 // use rpcdieselserver::dieselsqlite::{models::Block, TOP_LEVEL};
@@ -13,25 +13,35 @@ struct Sqlquery {
 }
 
 #[derive(Serialize)]
-struct SqlResponse {
-    result:(Vec<u8>,i32)
+#[serde(tag = "type")]
+enum SqlResponse {
+    BlueprintSelect{ payload:Vec<u8>, timestamp:i32},
+    BlockHashSelect{hash:Vec<u8>},
+    Other
 }
+
+
 
 
 
 #[post("/")]
 async fn answer_query(query: web::Json<Sqlquery>) -> impl Responder{
     let mut connection=establish_connection();
-    let result=match query.name.as_str() {
+    let response=match query.name.as_str() {
             
             "select_blueprint"=>{
                 let id:i32=serde_json::from_value(query.params[0].clone()).unwrap();
-                   Blueprint::select(&mut connection,id)}
-            _=>{(Vec::new(),0)}
+                let (payload,timestamp)=Blueprint::select(&mut connection,id);
+                SqlResponse::BlueprintSelect{payload,timestamp}},
+            "select_block_from_level"=>{
+                let id:i32=serde_json::from_value(query.params[0].clone()).unwrap();
+                let hash=Block::select_hash_of_number(&mut connection, id);
+                SqlResponse::BlockHashSelect {hash: hash}
+                
+            }
+            _=>SqlResponse::Other
         };
-    let response=SqlResponse{
-        result
-    };
+    
     HttpResponse::Ok().json(response)
 }
 
