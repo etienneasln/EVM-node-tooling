@@ -1,8 +1,7 @@
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, Result};
-use rpcdieselserver::dieselsqlite::{establish_connection,models::{Blueprint}};
+use evmnodetooling::dieselsqlite::{establish_connection,models::{Blueprint}};
 use serde::{Deserialize,Serialize};
 
-// use rpcdieselserver::dieselsqlite::{models::Block, TOP_LEVEL};
 
 
 
@@ -35,9 +34,6 @@ async fn answer_query(query: web::Json<Sqlquery>) -> impl Responder{
     HttpResponse::Ok().json(response)
 }
 
-// async fn manual_hello() -> impl Responder {
-//     HttpResponse::Ok().body("Hey there!")
-// }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -51,9 +47,3 @@ async fn main() -> std::io::Result<()> {
 
 
 }
-
-// fn main(){
-//     let mut connection=establish_connection();
-
-//     let _=Block::clear_after(&mut connection,TOP_LEVEL);
-// }
