@@ -3,6 +3,7 @@ use diesel::{dsl::delete, prelude::*};
 
 use super::schema::{blueprints::dsl::blueprints,blocks::dsl::blocks};
 
+
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = super::schema::blueprints)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -82,7 +83,7 @@ pub struct NewBlueprint{
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = super::schema::blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
-pub struct Block {
+pub struct Block{
     pub level: i32,
     pub hash:String,
     pub block:Vec<u8>
@@ -92,7 +93,7 @@ impl Block {
 
     pub fn insert(connection:&mut SqliteConnection,level:i32,hash:&str, block: &Vec<u8>)->usize{
         let new_block=NewBlock{
-            level,hash: hash,block:block.clone()
+            level,hash: hash.to_string(),block:block.clone()
         };
         diesel::insert_into(blocks)
         .values(&new_block)
@@ -116,8 +117,9 @@ impl Block {
         .select(block)
         .get_result(connection)
         .unwrap_or_else(|e| panic!("Error selecting block with specified hash:{}",e))
-        
     }
+
+    
 
     pub fn select_hash_of_number(connection:&mut SqliteConnection,level:i32)->String{
         use super::schema::blocks::hash;
@@ -156,9 +158,9 @@ impl Block {
 
 #[derive(Insertable)]
 #[diesel(table_name = super::schema::blocks)]
-pub struct NewBlock<'a>{
+pub struct NewBlock{
     pub level:i32,
-    pub hash: &'a str,
+    pub hash: String,
     pub block:Vec<u8>,
 }
 
@@ -253,7 +255,7 @@ mod query_tests{
 
 
 
-        let _=Block::insert(&mut connection, base_insert_index+1,&inserted_hash,&inserted_block);
+        let _=Block::insert(&mut connection, base_insert_index+1,inserted_hash,&inserted_block);
         
         let block_from_level=Block
     ::select_with_level(&mut connection, base_insert_index+1);

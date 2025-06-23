@@ -28,13 +28,13 @@ fn main(){
     println!("Block:{:?}",block);
 
     let hash=Block::select_hash_of_number(&mut connection, BASE_LEVEL);
-    println!("Block hash:{}",hash);
+    println!("Block hash:{:?}",hash);
 
     let blockfromhash=Block::select_with_hash(&mut connection, &hash);
     println!("Block from hash:{:?}",blockfromhash);
 
     let idfromhash=Block::select_number_of_hash(&mut connection, &hash);
-    println!("Block from hash:{:?}",blockfromhash);
+    println!("ID from hash:{:?}",idfromhash);
 
     assert!(block==blockfromhash);
     assert!(idfromhash==BASE_LEVEL);
