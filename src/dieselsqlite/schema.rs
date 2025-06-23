@@ -76,7 +76,7 @@ diesel::allow_tables_to_appear_in_same_query!(
 diesel::table!{
     blocks (level) {
         level -> Integer,
-        hash -> Binary,
+        hash -> Text,
         block-> Binary,
     }
 }

@@ -1,4 +1,4 @@
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder, Result};
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 use evmnodetooling::dieselsqlite::{establish_connection,models::{Blueprint}};
 use serde::{Deserialize,Serialize};
 

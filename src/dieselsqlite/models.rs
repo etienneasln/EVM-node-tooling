@@ -84,15 +84,15 @@ pub struct NewBlueprint{
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {
     pub level: i32,
-    pub hash:Vec<u8>,
+    pub hash:String,
     pub block:Vec<u8>
 }
 
 impl Block {
 
-    pub fn insert(connection:&mut SqliteConnection,level:i32,hash:&Vec<u8>, block: &Vec<u8>)->usize{
+    pub fn insert(connection:&mut SqliteConnection,level:i32,hash:&str, block: &Vec<u8>)->usize{
         let new_block=NewBlock{
-            level,hash: hash.clone(),block:block.clone()
+            level,hash: hash,block:block.clone()
         };
         diesel::insert_into(blocks)
         .values(&new_block)
@@ -109,7 +109,7 @@ impl Block {
             .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",level,e))
     }
 
-    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Vec<u8>{
+    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&str)->Vec<u8>{
         use super::schema::blocks::dsl::*;
         blocks
         .filter(hash.eq(queried_hash))
@@ -119,7 +119,7 @@ impl Block {
         
     }
 
-    pub fn select_hash_of_number(connection:&mut SqliteConnection,level:i32)->Vec<u8>{
+    pub fn select_hash_of_number(connection:&mut SqliteConnection,level:i32)->String{
         use super::schema::blocks::hash;
         blocks
         .find(level)
@@ -129,7 +129,7 @@ impl Block {
         
     }
 
-    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->i32{
+    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&str)->i32{
         use super::schema::blocks::dsl::*;
         blocks
         .filter(hash.eq(queried_hash))
@@ -156,9 +156,9 @@ impl Block {
 
 #[derive(Insertable)]
 #[diesel(table_name = super::schema::blocks)]
-pub struct NewBlock{
+pub struct NewBlock<'a>{
     pub level:i32,
-    pub hash: Vec<u8>,
+    pub hash: &'a str,
     pub block:Vec<u8>,
 }
 
@@ -247,7 +247,7 @@ mod query_tests{
         let mut connection=establish_connection();
 
         
-        let inserted_hash="hash".as_bytes().to_vec();
+        let inserted_hash="hash";
         let inserted_block="block".as_bytes().to_vec();
         let base_insert_index=TOP_LEVEL;
 
