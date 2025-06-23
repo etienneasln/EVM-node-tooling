@@ -1,0 +1,4 @@
+/target
+src/bin/manualtesting.rs
+store.sqlite
+Cargo.lock
