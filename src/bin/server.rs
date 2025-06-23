@@ -17,6 +17,7 @@ struct Sqlquery {
 enum SqlResponse {
     BlueprintSelect{ payload:Vec<u8>, timestamp:i32},
     BlockHashSelect{hash:Vec<u8>},
+    BlockSelect{block:Vec<u8>},
     Other
 }
 
@@ -33,12 +34,17 @@ async fn answer_query(query: web::Json<Sqlquery>) -> impl Responder{
                 let id:i32=serde_json::from_value(query.params[0].clone()).unwrap();
                 let (payload,timestamp)=Blueprint::select(&mut connection,id);
                 SqlResponse::BlueprintSelect{payload,timestamp}},
-            "select_block_from_level"=>{
+            "select_block_hash_of_number"=>{
                 let id:i32=serde_json::from_value(query.params[0].clone()).unwrap();
                 let hash=Block::select_hash_of_number(&mut connection, id);
-                SqlResponse::BlockHashSelect {hash: hash}
+                SqlResponse::BlockHashSelect {hash}
                 
             }
+            "select_block_with_level"=>{
+                let id:i32=serde_json::from_value(query.params[0].clone()).unwrap();
+                let block=Block::select_with_level(&mut connection, id);
+                SqlResponse::BlockSelect{block}
+            },
             _=>SqlResponse::Other
         };
     
