@@ -1,6 +1,8 @@
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{post, web, App, Error, HttpResponse, HttpServer, Responder, ResponseError};
+use diesel::SqliteConnection;
 use evmnodetooling::dieselsqlite::{establish_connection,models::{Blueprint,Block}};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use derive_more::derive::{Display, Error};
 
 
 
@@ -20,15 +22,89 @@ enum SqlResponse{
     BlockHashSelect{hash:Vec<u8>},
     BlockIdSelect{id:i32},
     NumbersofRowsAffected{number:usize},
-    MethodNotSupported{message:String}
 }
 
-fn extract_parameter<T>(param:&serde_json::Value)->T where T:DeserializeOwned{
+#[derive(Debug, Display, Error)]
+enum ServerError<'a>{
+    #[display("Method {method} not supported")]
+    MethodNotSupported { method: &'a str },
+    
+}
+
+
+
+fn extract_parameter<T>(param:&serde_json::Value)->Result<T, serde_json::Error> where T:DeserializeOwned{
     serde_json::from_value(param.clone())
-    .unwrap_or_else(|e| panic!("Error extracting parameter:{e}"))
+    
 }
 
-
+fn query_handler<'a>(connection:&'a mut SqliteConnection,query_name:&'a str,params:&'a serde_json::Value)->Result<SqlResponse,ServerError<'a>>{
+    let result=match  query_name{
+            
+            "select_blueprint"=>{
+                let id:i32=extract_parameter(&params[0])?;
+                let (payload,timestamp)=Blueprint::select(&mut connection,id);
+                SqlResponse::BlueprintSelect{payload,timestamp}}
+            "insert_blueprint"=>{
+                let id:i32=extract_parameter(&params[0])?;
+                let payload:Vec<u8>=extract_parameter(&params[1])?;
+                let timestamp:i32=extract_parameter(&params[2])?;
+                let insertresult=Blueprint::insert(&mut connection, id, &payload, timestamp);
+                SqlResponse::NumbersofRowsAffected { number:insertresult }
+            }
+            "select_blueprint_range"=>{
+                let lowerlevel=extract_parameter(&params[0])?;
+                let upperlevel=extract_parameter(&params[1])?;
+                let idandpayloads=Blueprint::select_range(&mut connection, lowerlevel, upperlevel);
+                SqlResponse::BlueprintRangeSelect {idandpayloads}
+            }
+            "clear_after_blueprint"=>{
+                let level:i32=extract_parameter(&params[0])?;
+                let clear_after_result=Blueprint::clear_after(&mut connection, level);
+                SqlResponse::NumbersofRowsAffected { number:clear_after_result}
+            }
+            "clear_before_blueprint"=>{
+                let level:i32=extract_parameter(&params[0])?;
+                let clear_before_result=Blueprint::clear_before(&mut connection, level);
+                SqlResponse::NumbersofRowsAffected { number:clear_before_result}
+            }
+            "select_block_with_level"=>{
+                let id:i32=extract_parameter(&params[0])?;
+                let block=Block::select_with_level(&mut connection, id);
+                SqlResponse::BlockSelect{block}
+            }
+            "select_block_with_hash"=>{
+                let hash:Vec<u8>=extract_parameter(&params[0])?;
+                println!("hash:{:?}",hash);
+                let block=Block::select_with_hash(&mut connection, &hash);
+                SqlResponse::BlockSelect{block}
+            }
+            "select_block_hash_of_number"=>{
+                let id:i32=extract_parameter(&params[0])?;
+                let hash=Block::select_hash_of_number(&mut connection, id);
+                SqlResponse::BlockHashSelect {hash}
+            }
+            "select_block_number_of_hash"=>{
+                let hash:Vec<u8>=extract_parameter(&params[0])?;
+                let id=Block::select_number_of_hash(&mut connection, &hash);
+                SqlResponse::BlockIdSelect{id}
+            }
+            "clear_after_block"=>{
+                let level:i32=extract_parameter(&params[0])?;
+                let clear_after_result=Block::clear_after(&mut connection, level);
+                SqlResponse::NumbersofRowsAffected { number:clear_after_result}
+            }
+            "clear_before_block"=>{
+                let level:i32=extract_parameter(&params[0])?;
+                let clear_before_result=Block::clear_before(&mut connection, level);
+                SqlResponse::NumbersofRowsAffected { number:clear_before_result}
+            }
+            _=>{
+                return Err(UserError::MethodNotSupported { method:query_name})
+            }
+    };
+    Ok(result)
+}
 
 
 #[post("/")]
@@ -71,6 +147,7 @@ async fn answer_query(query: web::Json<Sqlquery>) -> impl Responder{
             }
             "select_block_with_hash"=>{
                 let hash:Vec<u8>=extract_parameter(&query.params[0]);
+                println!("hash:{:?}",hash);
                 let block=Block::select_with_hash(&mut connection, &hash);
                 SqlResponse::BlockSelect{block}
             }
