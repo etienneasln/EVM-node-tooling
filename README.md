@@ -12,3 +12,11 @@ octez-evm-node --network=testnet ...
 2.Copy the ``store.sqlite`` file created following this execution and paste it in the repository's root directory.  
 3.Modify the ``.env`` file to match the SQLite file's location.  
 4. (optional) Modify hard-coded values in the tests in ``src/dieselsqlite/models.rs``to reflect the bottom and top block id in the database.  
+
+## Running
+
+1. Run the command ``cargo run --bin server`` in the root directory of the repository.  
+2. From a separate terminal, run some HTTP requests:
+   ```
+   curl -X POST http://localhost:8080/ -H "Content-Type: application/json" --data '{"name":"method_name","params":[#Insert adequate parameters]}'
+   ```
