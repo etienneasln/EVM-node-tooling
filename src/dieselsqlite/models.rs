@@ -1,5 +1,5 @@
 // use diesel::{dsl::delete, prelude::*, query_dsl::methods::{LoadQuery}};
-use diesel::{dsl::delete, prelude::*, sql_query, sql_types::Binary};
+use diesel::{dsl::delete, prelude::*, sql_query, sql_types::{Binary, Integer}};
 
 use super::schema::{blueprints::dsl::blueprints,blocks::dsl::blocks};
 
@@ -79,7 +79,7 @@ pub struct NewBlueprint{
     pub timestamp: i32,
 }
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable,QueryableByName)]
 #[diesel(table_name = super::schema::blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {
@@ -112,13 +112,13 @@ impl Block {
             .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",level,e))
     }
 
+
     pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Vec<u8>{
-        use super::schema::blocks::dsl::*;
-        blocks
-        .filter(hash.eq(queried_hash))
-        .select(block)
-        .get_result(connection)
+        sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
+        .bind::<Binary,_>(queried_hash)
+        .get_result::<Block>(connection)
         .unwrap_or_else(|e| panic!("Error selecting block with specified hash:{}",e))
+        .block
     }
 
     pub fn select_hash_of_number(connection:&mut SqliteConnection,level:i32)->Vec<u8>{
@@ -130,16 +130,6 @@ impl Block {
         .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",level,e))
     }
 
-
-
-    // pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->i32{
-    //     use super::schema::blocks::dsl::*;
-    //     blocks
-    //     .filter(hash.eq(queried_hash))
-    //     .select(level)
-    //     .get_result(connection)
-    //     .unwrap_or_else(|e| panic!("Error selecting level with specified hash:{}",e))
-    // }
 
     pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->i32{
         sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
