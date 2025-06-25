@@ -1,5 +1,4 @@
-// use diesel::{dsl::delete, prelude::*, query_dsl::methods::{LoadQuery}};
-use diesel::{dsl::delete, prelude::*, sql_query, sql_types::{Binary, Integer}};
+use diesel::{dsl::{count, delete}, prelude::*, sql_query, sql_types::{Binary, Integer}};
 
 use super::schema::{blueprints::dsl::blueprints,blocks::dsl::blocks};
 
@@ -15,6 +14,14 @@ pub struct Blueprint{
 
 impl Blueprint{
 
+    pub fn count(connection:&mut SqliteConnection)->i64{
+        use super::schema::blueprints::dsl::id;
+            
+        blueprints
+        .select(count(id))
+        .first(connection)
+        .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
+    }
     
     pub fn select(connection:&mut SqliteConnection,id:i32)->(Vec<u8>,i32){
             use super::schema::blueprints::dsl::{payload,timestamp};
@@ -92,6 +99,15 @@ pub struct Block {
 }
 
 impl Block {
+
+    pub fn count(connection:&mut SqliteConnection)->i64{
+        use super::schema::blocks::dsl::level;
+            
+        blocks
+        .select(count(level))
+        .first(connection)
+        .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
+    }
 
     pub fn insert(connection:&mut SqliteConnection,level:i32,hash:&Vec<u8>, block: &Vec<u8>)->usize{
         let new_block=NewBlock{

@@ -47,6 +47,9 @@ fn main(){
     
     let _=Block::clear_after(&mut connection, TOP_LEVEL);
 
+    println!("Block count:{}", Block::count(&mut connection));
+    println!("Blueprint count:{}",Blueprint::count(&mut connection));
+
     
 }
 
