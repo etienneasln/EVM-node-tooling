@@ -1,7 +1,6 @@
 use diesel::{dsl::{count, delete}, prelude::*, sql_query, sql_types::{Binary, Integer}};
 
-
-use super::schema::blueprints::dsl::blueprints;
+use super::schema::{blueprints::dsl::blueprints,blocks::dsl::blocks};
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = super::schema::blueprints)]
@@ -200,12 +199,9 @@ pub struct NewBlock{
 // }
 
 
-
 #[cfg(test)]
 mod query_tests{
-    use crate::dieselsqlite::{establish_connection};
-    // pub const BASE_LEVEL:i32=19595657;
-    pub const TOP_LEVEL:i32=19630993;
+    use crate::dieselsqlite::{establish_connection, TOP_LEVEL};
 
     use super::*;
 
@@ -261,6 +257,43 @@ mod query_tests{
 
         assert_eq!(rows_cleared,expected_rows_cleared);
 
+        
+    }
+
+    #[test]
+    fn test_block_insert_selects_clearafter(){
+        let mut connection=establish_connection();
+
+        
+        let inserted_hash="hash".as_bytes().to_vec();
+        let inserted_block="block".as_bytes().to_vec();
+        let base_insert_index=TOP_LEVEL;
+
+
+
+        let _=Block::insert(&mut connection, base_insert_index+1,&inserted_hash,&inserted_block);
+        
+        let block_from_level=Block
+    ::select_with_level(&mut connection, base_insert_index+1);
+        let hash_of_number=Block
+    ::select_hash_of_number(&mut connection, base_insert_index+1);
+        let number_of_hash=Block
+    ::select_number_of_hash(&mut connection, &hash_of_number);
+        let block_from_hash=Block
+    ::select_with_hash(&mut connection, &hash_of_number);
+        
+        assert_eq!(block_from_level,inserted_block);
+        assert_eq!(hash_of_number,inserted_hash);
+        assert_eq!(number_of_hash,base_insert_index+1);
+        assert_eq!(block_from_hash,inserted_block);
+
+
+        let expected_rows_cleared:usize=1;
+        
+        let rows_cleared=Block
+    ::clear_after(&mut connection, base_insert_index);
+
+        assert_eq!(rows_cleared,expected_rows_cleared);
         
     }
 
