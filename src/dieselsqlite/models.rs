@@ -1,4 +1,5 @@
-use diesel::{dsl::delete, prelude::*};
+use diesel::{dsl::{count, delete}, prelude::*, sql_query, sql_types::{Binary, Integer}};
+
 
 use super::schema::blueprints::dsl::blueprints;
 
@@ -13,6 +14,14 @@ pub struct Blueprint{
 
 impl Blueprint{
 
+    pub fn count(connection:&mut SqliteConnection)->i64{
+        use super::schema::blueprints::dsl::id;
+            
+        blueprints
+        .select(count(id))
+        .first(connection)
+        .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
+    }
     
     pub fn select(connection:&mut SqliteConnection,id:i32)->(Vec<u8>,i32){
             use super::schema::blueprints::dsl::{payload,timestamp};
@@ -76,6 +85,119 @@ pub struct NewBlueprint{
     pub payload: Vec<u8>,
     pub timestamp: i32,
 }
+
+#[derive(Queryable, Selectable,QueryableByName)]
+#[diesel(table_name = super::schema::blocks)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct Block {
+    #[diesel(sql_type=Integer)]
+    pub level: i32,
+    #[diesel(sql_type=Binary)]
+    pub hash:Vec<u8>,
+    #[diesel(sql_type=Binary)]
+    pub block:Vec<u8>
+}
+
+impl Block {
+
+    pub fn count(connection:&mut SqliteConnection)->i64{
+        use super::schema::blocks::dsl::level;
+            
+        blocks
+        .select(count(level))
+        .first(connection)
+        .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
+    }
+
+    pub fn insert(connection:&mut SqliteConnection,level:i32,hash:&Vec<u8>, block: &Vec<u8>)->usize{
+        let new_block=NewBlock{
+            level,hash: hash.clone(),block:block.clone()
+        };
+        diesel::insert_into(blocks)
+        .values(&new_block)
+        .execute(connection)
+        .unwrap_or_else(|e| panic!("Error inserting block with level:{} :{}",level,e))
+    }
+
+    pub fn select_with_level(connection:&mut SqliteConnection,level:i32)->Vec<u8>{
+        use super::schema::blocks::dsl::block;
+            blocks
+            .find(level)
+            .select(block)
+            .get_result(connection)
+            .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",level,e))
+    }
+
+
+    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Vec<u8>{
+        sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
+        .bind::<Binary,_>(queried_hash)
+        .get_result::<Block>(connection)
+        .unwrap_or_else(|e| panic!("Error selecting block with specified hash:{}",e))
+        .block
+    }
+
+    pub fn select_hash_of_number(connection:&mut SqliteConnection,level:i32)->Vec<u8>{
+        use super::schema::blocks::hash;
+        blocks
+        .find(level)
+        .select(hash)
+        .get_result(connection)
+        .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",level,e))
+    }
+
+
+    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->i32{
+        sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
+        .bind::<Binary,_>(queried_hash)
+        .get_result::<Block>(connection)
+        .unwrap_or_else(|e| panic!("Error selecting level with specified hash:{}",e))
+        .level
+    }
+
+    
+
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->usize{
+        use super::schema::blocks::dsl::*;
+        delete(blocks.filter(level.gt(queried_level)))
+        .execute(connection)
+        .unwrap_or_else(|e| panic!("Error clearing blocks after level {} (excluded):{}",queried_level,e))
+    }
+
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->usize{
+        use super::schema::blocks::dsl::*;
+        delete(blocks.filter(level.lt(queried_level)))
+        .execute(connection)
+        .unwrap_or_else(|e| panic!("Error clearing blocks before level {} (excluded):{}",queried_level,e))
+    }
+    
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = super::schema::blocks)]
+pub struct NewBlock{
+    pub level:i32,
+    pub hash: Vec<u8>,
+    pub block:Vec<u8>,
+}
+
+// pub fn insert<T>(conn:&mut SqliteConnection,object:impl Insertable<T>,table:impl Table)->usize{
+//     diesel::insert_into(table)
+//         .values(&object)
+//         .execute(conn)
+//         .unwrap_or_else(|e| panic!("Error inserting object:{}",e))
+// }
+
+// pub fn select_with_primary_key<'a,PK,T,S,U>(conn:&mut SqliteConnection,pk:PK,selection:S,table:T)->U
+// where T:Table + FindDsl<PK>,
+// S: Expression,
+// <T as FindDsl<PK>>::Output:SelectDsl<S>,
+// <<T as FindDsl<PK>>::Output as SelectDsl<S>>::Output:LoadQuery<'a,SqliteConnection,U>{
+//     table.find(pk)
+//     .select(selection)
+//     .get_result(conn)
+//     .unwrap_or_else(|e| panic!("Error selecting object with primary key:{e}"))
+// }
 
 
 
