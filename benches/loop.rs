@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use diesel::SqliteConnection;
 use evmnodetooling::dieselsqlite::{establish_connection, models::{Block, Blueprint}, BASE_LEVEL};
 
@@ -16,10 +16,11 @@ fn run_change_to_mut_ref(connection:&mut SqliteConnection,id:&mut i32){
     *id=*id+1;
 }
 
-fn criterion_block_select_with_level(c:&mut Criterion){
+fn criterion_block_select_with_level_19100196(c:&mut Criterion){
     let mut connection=establish_connection();
+    let id=19100196;
     
-    c.bench_function("block select with level", |b| b.iter(|| run_select_block_with_level(&mut connection,BASE_LEVEL)));
+    c.bench_function("block_select_with_level_19100196", |b| b.iter(|| black_box(run_select_block_with_level(&mut connection,id))));
 }
 
 fn criterion_apply_blueprint_18987875(c:&mut Criterion){
@@ -71,9 +72,10 @@ fn criterion_test_change_to_mutable_reference(c:&mut Criterion){
 
 
 criterion_group!(benches, 
-    criterion_block_select_with_level,
-    criterion_apply_blueprint_18989033,
-    criterion_apply_blueprint_18989013,
-    criterion_apply_blueprint_18987875,
-    criterion_test_change_to_mutable_reference);
+    criterion_block_select_with_level_19100196,
+    // criterion_apply_blueprint_18989033,
+    // criterion_apply_blueprint_18989013,
+    // criterion_apply_blueprint_18987875,
+    // criterion_test_change_to_mutable_reference,
+);
 criterion_main!(benches);
