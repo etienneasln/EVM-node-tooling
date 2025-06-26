@@ -7,6 +7,7 @@ fn main(){
     let (payload,timestamp)=Blueprint::select(&mut connection, id);
     let hash=Block::select_hash_of_number(&mut connection, id);
     let block=Block::select_with_level(&mut connection, id);
+<<<<<<< refactoring-inserts
     let _=Blueprint::clear_after(&mut connection, id-1);
     let _=Block::clear_after(&mut connection, id-1);
     
@@ -19,6 +20,11 @@ fn main(){
 
 
 
+=======
+
+    let _=Blueprint::clear_after(&mut connection, id-1);
+    let _=Block::clear_after(&mut connection, id-1);
+>>>>>>> main
     
     let start=Instant::now();
     let _=blueprint.insert(&mut connection);
