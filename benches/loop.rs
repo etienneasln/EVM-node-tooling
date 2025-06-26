@@ -7,7 +7,10 @@ fn run_select_block_with_level(connection:&mut SqliteConnection,level:i32){
 }
 
 fn run_insert_blueprint(connection:&mut SqliteConnection,id:&mut i32,payload:&Vec<u8>,timestamp:i32){
-    let _=Blueprint::insert(connection, *id, payload, timestamp);
+    let blueprint=Blueprint{
+        id:*id,payload:payload.clone(),timestamp
+    };
+    let _=blueprint.insert(connection);
 
     *id=*id+1;
 }

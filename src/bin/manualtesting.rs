@@ -6,8 +6,12 @@ fn main(){
     let (payload,timestamp)=Blueprint::select(&mut connection, BASE_LEVEL);
     
     println!("Payload:{:?}, Timestamp:{timestamp}", payload);
+
+    let blueprint=Blueprint{
+        id:TOP_LEVEL+1,payload,timestamp
+    };
     
-    let _=Blueprint::insert(&mut connection,TOP_LEVEL+1,&payload,timestamp);
+    let _=blueprint.insert(&mut connection);
     
     
     let (payload,timestamp)=Blueprint::select(&mut connection, TOP_LEVEL+1);
@@ -39,7 +43,11 @@ fn main(){
     assert!(block==blockfromhash);
     assert!(idfromhash==BASE_LEVEL);
 
-    let _=Block::insert(&mut connection,TOP_LEVEL+1,&"Random hash".as_bytes().to_vec(),&block);
+    let block=Block{
+        level:TOP_LEVEL+1,hash:"Random hash".as_bytes().to_vec(),block:block
+    };
+
+    let _=block.insert(&mut connection);
 
     let block = Block::select_with_level(&mut connection, TOP_LEVEL+1);
     println!("Block:{:?}",block);

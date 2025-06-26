@@ -45,7 +45,10 @@ async fn answer_query(query: web::Json<Sqlquery>) -> impl Responder{
                 let id:i32=extract_parameter(&query.params[0]);
                 let payload:Vec<u8>=extract_parameter(&query.params[1]);
                 let timestamp:i32=extract_parameter(&query.params[2]);
-                let insertresult=Blueprint::insert(&mut connection, id, &payload, timestamp);
+                let blueprint=Blueprint{
+                    id,payload,timestamp
+                };
+                let insertresult=blueprint.insert(&mut connection);
                 SqlResponse::NumbersofRowsAffected { number:insertresult }
             }
             "select_blueprint_range"=>{
