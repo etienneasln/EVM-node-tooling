@@ -7,12 +7,10 @@ fn main(){
     let (payload,timestamp)=Blueprint::select(&mut connection, id);
     let hash=Block::select_hash_of_number(&mut connection, id);
     let block=Block::select_with_level(&mut connection, id);
+
     let _=Blueprint::clear_after(&mut connection, id-1);
-
-
-
-
-    let _=Blueprint::clear_after(&mut connection, id);
+    let _=Block::clear_after(&mut connection, id-1);
+    
     let start=Instant::now();
     let _=Blueprint::insert(&mut connection, id, &payload, timestamp);
     let _=Block::insert(&mut connection, id,&hash,&block);
