@@ -8,6 +8,8 @@ fn main(){
     let hash=Block::select_hash_of_number(&mut connection, id);
     let block=Block::select_with_level(&mut connection, id);
     let _=Blueprint::clear_after(&mut connection, id-1);
+    let _=Block::clear_after(&mut connection, id-1);
+    
     let blueprint=Blueprint{
         id,payload,timestamp
     };
@@ -17,7 +19,7 @@ fn main(){
 
 
 
-    let _=Blueprint::clear_after(&mut connection, id);
+    
     let start=Instant::now();
     let _=blueprint.insert(&mut connection);
     let _=block.insert(&mut connection);
