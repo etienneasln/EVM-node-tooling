@@ -9,7 +9,7 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
 ```
 octez-evm-node --network=testnet ...
 ```  
-2.Modify the ``.env`` file to match the SQLite ``store.sqlite`` file's location. This file is created by the node and located in the node's data directory.
+2.Modify the ``.env`` file to match the SQLite ``store.sqlite`` file's location. This file is created by the node and located in the node's data directory.  
 3.(optional) Modify hard-coded values in the tests in ``src/dieselsqlite/models.rs``to reflect the bottom and top block id in the database.  
 
 ## Running
