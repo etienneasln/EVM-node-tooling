@@ -5,13 +5,12 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
 
 ## Setup
 
-1.Run the evm node for a while in a separate directory: 
+1.Run the evm node (from https://gitlab.com/tezos/tezos) for a while in a separate directory: 
 ```
 octez-evm-node --network=testnet ...
 ```  
-2.Copy the ``store.sqlite`` file created following this execution and paste it in the repository's root directory.  
-3.Modify the ``.env`` file to match the SQLite file's location.  
-4. (optional) Modify hard-coded values in the tests in ``src/dieselsqlite/models.rs``to reflect the bottom and top block id in the database.  
+2.Modify the ``.env`` file to match the SQLite ``store.sqlite`` file's location. This file is created by the node and located in the node's data directory.
+3.(optional) Modify hard-coded values in the tests in ``src/dieselsqlite/models.rs``to reflect the bottom and top block id in the database.  
 
 ## Running
 
