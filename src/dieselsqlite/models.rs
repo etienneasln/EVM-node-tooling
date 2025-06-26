@@ -2,7 +2,7 @@ use diesel::{dsl::{count, delete}, prelude::*, sql_query, sql_types::{Binary, In
 
 use super::schema::{blueprints::dsl::blueprints,blocks::dsl::blocks};
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable,Insertable)]
 #[diesel(table_name = super::schema::blueprints)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Blueprint{
@@ -32,14 +32,11 @@ impl Blueprint{
             .unwrap_or_else(|e| panic!("Error selecting blueprint with id:{} :{}",id,e))
     }
 
-    pub fn insert(connection:&mut SqliteConnection,id:i32,payload:&Vec<u8>, timestamp: i32)->usize{
-        let new_blueprint=NewBlueprint{
-            id,payload: payload.clone(),timestamp
-        };
+    pub fn insert(self,connection:&mut SqliteConnection)->usize{
         diesel::insert_into(blueprints)
-        .values(&new_blueprint)
+        .values(&self)
         .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting blueprint with id:{} :{}",id,e))
+        .unwrap_or_else(|e| panic!("Error inserting blueprint with id:{} :{}",self.id,e))
     }
 
 
@@ -77,15 +74,9 @@ impl Blueprint{
 
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = super::schema::blueprints)]
-pub struct NewBlueprint{
-    pub id:i32,
-    pub payload: Vec<u8>,
-    pub timestamp: i32,
-}
 
-#[derive(Queryable, Selectable,QueryableByName)]
+
+#[derive(Queryable, Selectable,QueryableByName,Insertable)]
 #[diesel(table_name = super::schema::blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {
@@ -108,14 +99,11 @@ impl Block {
         .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
     }
 
-    pub fn insert(connection:&mut SqliteConnection,level:i32,hash:&Vec<u8>, block: &Vec<u8>)->usize{
-        let new_block=NewBlock{
-            level,hash: hash.clone(),block:block.clone()
-        };
+    pub fn insert(self,connection:&mut SqliteConnection)->usize{
         diesel::insert_into(blocks)
-        .values(&new_block)
+        .values(&self)
         .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting block with level:{} :{}",level,e))
+        .unwrap_or_else(|e| panic!("Error inserting block with level:{} :{}",self.level,e))
     }
 
     pub fn select_with_level(connection:&mut SqliteConnection,level:i32)->Vec<u8>{
@@ -172,13 +160,7 @@ impl Block {
     
 }
 
-#[derive(Insertable)]
-#[diesel(table_name = super::schema::blocks)]
-pub struct NewBlock{
-    pub level:i32,
-    pub hash: Vec<u8>,
-    pub block:Vec<u8>,
-}
+
 
 // pub fn insert<T>(conn:&mut SqliteConnection,object:impl Insertable<T>,table:impl Table)->usize{
 //     diesel::insert_into(table)
@@ -209,11 +191,19 @@ mod query_tests{
     fn test_blueprint_insert_select_clearafter(){
         let mut connection=establish_connection();
 
+        
+
         let inserted_payload="payload".as_bytes().to_vec();
         let inserted_timestamp=1000;
         let base_insert_index=TOP_LEVEL;
 
-        let _=Blueprint::insert(&mut connection, base_insert_index+1,&inserted_payload,inserted_timestamp);
+        let blueprint=Blueprint{
+            id:base_insert_index+1,
+            payload:inserted_payload.clone(),
+            timestamp:inserted_timestamp
+        };
+
+        let _=blueprint.insert(&mut connection);
         
         let (payload,timestamp)=Blueprint::select(&mut connection, base_insert_index+1);
         
@@ -236,9 +226,24 @@ mod query_tests{
         let inserted_timestamps=vec![1000,1001,1002];
         let base_insert_index=TOP_LEVEL;
 
-        let _=Blueprint::insert(&mut connection, base_insert_index+1,&inserted_payloads[0],inserted_timestamps[0]);
-        let _=Blueprint::insert(&mut connection, base_insert_index+2,&inserted_payloads[1],inserted_timestamps[0]);
-        let _=Blueprint::insert(&mut connection, base_insert_index+3,&inserted_payloads[2],inserted_timestamps[0]);
+        let blueprint1=Blueprint{
+            id:base_insert_index+1,
+            payload:inserted_payloads[0].clone(),
+            timestamp:inserted_timestamps[0]
+        };
+        let blueprint2=Blueprint{
+            id:base_insert_index+2,
+            payload:inserted_payloads[1].clone(),
+            timestamp:inserted_timestamps[1]
+        };
+        let blueprint3=Blueprint{
+            id:base_insert_index+3,
+            payload:inserted_payloads[2].clone(),
+            timestamp:inserted_timestamps[2]
+        };
+        let _=blueprint1.insert(&mut connection);
+        let _=blueprint2.insert(&mut connection);
+        let _=blueprint3.insert(&mut connection);
 
 
         let expected_vector=vec![base_insert_index+1,base_insert_index+2,base_insert_index+3]
@@ -269,9 +274,14 @@ mod query_tests{
         let inserted_block="block".as_bytes().to_vec();
         let base_insert_index=TOP_LEVEL;
 
+        let block=Block{
+            level:base_insert_index,
+            hash:inserted_hash.clone(),
+            block:inserted_block.clone()
+        };
 
 
-        let _=Block::insert(&mut connection, base_insert_index+1,&inserted_hash,&inserted_block);
+        let _=block.insert(&mut connection);
         
         let block_from_level=Block
     ::select_with_level(&mut connection, base_insert_index+1);
