@@ -1,3 +1,4 @@
 /target
-store*
+*.sqlite
 Cargo.lock
+.env
