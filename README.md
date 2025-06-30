@@ -23,3 +23,19 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
    ```
    curl -X POST http://localhost:8080/ -H "Content-Type: application/json" --data '{"name":"method_name","params":[#Insert adequate parameters]}'
    ```
+
+## Benchmarks
+
+### Criterion 
+
+Run the `cargo bench` command. The benchmarks' execution will depend on and update the database's content. Change the hard-coded values accordingly (`INSERT_INDEX` and `SELECT_INDEX`). It is possible to benchmark with an in memory database (by changing the `DATABASE_URL` to `:memory:`).
+
+### Manual Benchmarks
+
+#### Select
+
+Run the `cargo run --bin manualbenchingselectwithlevel` command.
+
+#### Insert
+
+Run the `cargo run --bin manualbenchinginsert` command.

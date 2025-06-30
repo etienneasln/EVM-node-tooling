@@ -1,4 +1,4 @@
-use diesel::{prelude::*, result::Error};
+use diesel::prelude::*;
 use dotenvy::dotenv;
 use rusqlite::Connection as RusqliteConnection;
 use std::env;
