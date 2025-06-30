@@ -5,9 +5,9 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
 
 ## Setup
 
-1. Run the evm node (from https://gitlab.com/tezos/tezos) for a while in a separate directory:
+1. Run the evm node (from https://gitlab.com/tezos/tezos) for a while:
    ```
-   octez-evm-node --network=testnet ...
+   ./octez-evm-node run observer   --network mainnet   --history rolling:1   --dont-track-rollup-node   --init-from-snapshot --data-dir ./local_test --profiling
    ```  
 2. Run the following command in the repository's root directory:
    ```
