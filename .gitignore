@@ -2,3 +2,5 @@
 *.sqlite*
 Cargo.lock
 .env
+/migrations
+diesel.toml

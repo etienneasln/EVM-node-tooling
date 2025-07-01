@@ -5,7 +5,7 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
 
 ## Setup
 
-1. Run the evm node (from https://gitlab.com/tezos/tezos) for a while:
+1. Run the evm node (from [tezos](https://gitlab.com/tezos/tezos)) for a while:
    ```
    ./octez-evm-node run observer   --network mainnet   --history rolling:1   --dont-track-rollup-node   --init-from-snapshot --data-dir ./local_test --profiling
    ```  
@@ -14,7 +14,9 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
    echo DATABASE_URL=/path/to/the/store.sqlite/file > .env
    ```
    The `store.sqlite` is created by the node and located in the node's data directory.  
-3. (optional) Modify hard-coded values in the tests in `src/dieselsqlite/models.rs`to reflect the bottom and top block id in the database.  
+3. Install Diesel CLI if not already installed (see [Getting Started with Diesel](https://diesel.rs/guides/getting-started))
+4. Run `diesel setup` in the root directory
+5. (optional) Modify hard-coded values in the tests in `src/dieselsqlite/models.rs`to reflect the bottom and top block id in the database.  
 
 ## Running
 
