@@ -6,7 +6,11 @@ use rusqlite::{params, Connection};
 
 //Update according to database content
 const INSERT_INDEX:i32=18987876;
-const SELECT_INDEX:i32=19100196;
+const SELECT_INDEX:i32=19224741;
+
+const FIRST_INSERT:i32=19225061;
+const SECOND_INSERT:i32=19225039;
+const THIRD_INSERT:i32=19225033;
 
 
 fn criterion_insert(c:&mut Criterion){
@@ -134,6 +138,54 @@ fn run_insert_then_clear_rusqlite(connection:&Connection,id:i32,payload:&Vec<u8>
 }
 
 
+fn criterion_first_select_then_insert(c:&mut Criterion){
+    let database_url=load_database_url();
+    if database_url.as_str() != ":memory:"{
+        let mut connection=establish_connection();
+        let mut id=FIRST_INSERT;
+        let (payload,timestamp)=Blueprint::select(&mut connection, id);
+        let _=Blueprint::clear_after(&mut connection, FIRST_INSERT-1);
+        
+
+
+        c.bench_function("first select then insert", |b| b.iter(|| run_insert_blueprint_diesel(&mut connection,&mut id,&payload,timestamp)));
+
+        let _=Blueprint::clear_after(&mut connection, FIRST_INSERT);
+    }
+}
+
+fn criterion_second_select_then_insert(c:&mut Criterion){
+    let database_url=load_database_url();
+    if database_url.as_str() != ":memory:"{
+        let mut connection=establish_connection();
+        let mut id=SECOND_INSERT;
+
+        let (payload,timestamp)=Blueprint::select(&mut connection, id);
+        let _=Blueprint::clear_after(&mut connection, SECOND_INSERT-1);
+
+        c.bench_function("second select then insert", |b| b.iter(|| run_insert_blueprint_diesel(&mut connection,&mut id,&payload,timestamp)));
+
+        let _=Blueprint::clear_after(&mut connection, SECOND_INSERT);
+    }
+}
+
+fn criterion_third_select_then_insert(c:&mut Criterion){
+    let database_url=load_database_url();
+    if database_url.as_str() != ":memory:"{
+        let mut connection=establish_connection();
+        let mut id=THIRD_INSERT;
+
+        let (payload,timestamp)=Blueprint::select(&mut connection, id);
+        let _=Blueprint::clear_after(&mut connection, THIRD_INSERT-1);
+
+        c.bench_function("third select then insert", |b| b.iter(|| run_insert_blueprint_diesel(&mut connection,&mut id,&payload,timestamp)));
+
+        let _=Blueprint::clear_after(&mut connection, THIRD_INSERT);
+
+    }
+}
+
+
 
 
 
@@ -157,9 +209,11 @@ fn run_select_block_with_level(connection:&mut SqliteConnection,level:i32){
 
 
 criterion_group!(benches, 
-    criterion_insert,
-    criterion_insert_then_clear,
-    criterion_block_select_with_level,
-  
+    // criterion_insert,
+    // criterion_insert_then_clear,
+  criterion_block_select_with_level,
+  criterion_first_select_then_insert,
+  criterion_second_select_then_insert,
+  criterion_third_select_then_insert
 );
 criterion_main!(benches);
