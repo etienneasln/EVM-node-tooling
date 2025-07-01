@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use diesel::{RunQueryDsl, SqliteConnection};
 use evmnodetooling::dieselsqlite::{establish_connection, load_database_url, models::{Block, Blueprint}, rusqlite_connection, set_journal_mode_to_wal, set_synchronous_mode_to_full, 
 CLEAR_AFTER_BLUEPRINTS_QUERY, CREATE_TABLE_BLUEPRINTS_QUERY, INSERT_INTO_BLUEPRINTS_QUERY};
@@ -143,7 +143,7 @@ fn criterion_block_select_with_level(c:&mut Criterion){
         let mut connection=establish_connection();
         let id=SELECT_INDEX;
 
-        c.bench_function("block_select_with_level", |b| b.iter(|| black_box(run_select_block_with_level(&mut connection,id))));
+        c.bench_function("block_select_with_level", |b| b.iter(|| run_select_block_with_level(&mut connection,id)));
     }
 
 }

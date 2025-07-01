@@ -26,9 +26,11 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
 
 ## Benchmarks
 
+Note: It is possible to benchmark with an in memory database by changing the `DATABASE_URL` to `:memory:` (not for manual selecting benchmark).
+
 ### Criterion 
 
-Run the `cargo bench` command. The benchmarks' execution will depend on and update the database's content. Change the hard-coded values accordingly (`INSERT_INDEX` and `SELECT_INDEX`). It is possible to benchmark with an in memory database (by changing the `DATABASE_URL` to `:memory:`).
+Run the `cargo bench` command. The benchmarks' execution will depend on and update the database's content. Change the hard-coded values accordingly (`INSERT_INDEX` and `SELECT_INDEX`). 
 
 ### Manual Benchmarks
 
