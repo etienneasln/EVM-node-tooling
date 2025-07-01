@@ -55,3 +55,13 @@ pub const CREATE_TABLE_BLUEPRINTS_QUERY:&str="CREATE TABLE blueprints (
 pub const INSERT_INTO_BLUEPRINTS_QUERY:&str="INSERT INTO blueprints (id,payload,timestamp) VALUES (?1,?2,?3)";
 
 pub const CLEAR_AFTER_BLUEPRINTS_QUERY:&str="DELETE FROM blueprints WHERE id > ?1";
+
+pub const CREATE_TABLE_BLOCKS_QUERY:&str="CREATE TABLE blocks (
+  level serial PRIMARY KEY,
+  hash VARCHAR(32) NOT NULL,
+  block BLOB NOT NULL
+);";
+
+pub const INSERT_INTO_BLOCKS_QUERY:&str="INSERT INTO blocks (level,hash,block) VALUES (?1,?2,?3)";
+
+pub const CLEAR_AFTER_BLOCKS_QUERY:&str="DELETE FROM blocks WHERE level > ?1";
