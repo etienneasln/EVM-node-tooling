@@ -6,9 +6,6 @@ use std::env;
 pub mod models;
 pub mod schema;
 
-pub const BASE_LEVEL:i32=18791709;
-pub const TOP_LEVEL:i32=18990601;
-
 pub fn load_database_url()->String{
     dotenv().ok();
     env::var("DATABASE_URL").expect("DATABASE_URL must be set")
