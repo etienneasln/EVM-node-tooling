@@ -1,5 +1,4 @@
 /target
-*.sqlite*
 Cargo.lock
 .env
 /migrations
