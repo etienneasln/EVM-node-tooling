@@ -13,6 +13,7 @@ pub struct Blueprint{
 
 impl Blueprint{
 
+
     pub fn count(connection:&mut SqliteConnection)->i64{
         use super::schema::blueprints::dsl::id;
             
@@ -157,6 +158,25 @@ impl Block {
         .execute(connection)
         .unwrap_or_else(|e| panic!("Error clearing blocks before level {} (excluded):{}",queried_level,e))
     }
+
+    pub fn base_level(connection:&mut SqliteConnection)->i32{
+        use super::schema::blocks::dsl::*;
+        blocks
+        .select(level)
+        .limit(1)
+        .get_result(connection)
+        .unwrap_or_else(|e| panic!("Error selecting base level:{e}"))
+    }
+
+    pub fn top_level(connection:&mut SqliteConnection)->i32{
+        use super::schema::blocks::dsl::*;
+        blocks
+        .select(level)
+        .order(level.desc())
+        .limit(1)
+        .get_result(connection)
+        .unwrap_or_else(|e| panic!("Error selecting top level:{e}"))
+    }
     
 }
 
@@ -183,7 +203,7 @@ impl Block {
 
 #[cfg(test)]
 mod query_tests{
-    use crate::dieselsqlite::{establish_connection, TOP_LEVEL};
+    use crate::dieselsqlite::{establish_connection};
 
     use super::*;
 
@@ -195,7 +215,7 @@ mod query_tests{
 
         let inserted_payload="payload".as_bytes().to_vec();
         let inserted_timestamp=1000;
-        let base_insert_index=TOP_LEVEL;
+        let base_insert_index=Block::top_level(&mut connection);
 
         let blueprint=Blueprint{
             id:base_insert_index+1,
@@ -224,7 +244,7 @@ mod query_tests{
 
         let inserted_payloads=vec!["payload1".as_bytes().to_vec(),"payload2".as_bytes().to_vec(),"payload3".as_bytes().to_vec()];
         let inserted_timestamps=vec![1000,1001,1002];
-        let base_insert_index=TOP_LEVEL;
+        let base_insert_index=Block::top_level(&mut connection);
 
         let blueprint1=Blueprint{
             id:base_insert_index+1,
@@ -272,7 +292,7 @@ mod query_tests{
         
         let inserted_hash="hash".as_bytes().to_vec();
         let inserted_block="block".as_bytes().to_vec();
-        let base_insert_index=TOP_LEVEL;
+        let base_insert_index=Block::top_level(&mut connection);
 
         let block=Block{
             level:base_insert_index,

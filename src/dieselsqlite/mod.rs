@@ -6,9 +6,6 @@ use std::env;
 pub mod models;
 pub mod schema;
 
-pub const BASE_LEVEL:i32=18791709;
-pub const TOP_LEVEL:i32=18990601;
-
 pub fn load_database_url()->String{
     dotenv().ok();
     env::var("DATABASE_URL").expect("DATABASE_URL must be set")
@@ -55,3 +52,13 @@ pub const CREATE_TABLE_BLUEPRINTS_QUERY:&str="CREATE TABLE blueprints (
 pub const INSERT_INTO_BLUEPRINTS_QUERY:&str="INSERT INTO blueprints (id,payload,timestamp) VALUES (?1,?2,?3)";
 
 pub const CLEAR_AFTER_BLUEPRINTS_QUERY:&str="DELETE FROM blueprints WHERE id > ?1";
+
+pub const CREATE_TABLE_BLOCKS_QUERY:&str="CREATE TABLE blocks (
+  level serial PRIMARY KEY,
+  hash VARCHAR(32) NOT NULL,
+  block BLOB NOT NULL
+);";
+
+pub const INSERT_INTO_BLOCKS_QUERY:&str="INSERT INTO blocks (level,hash,block) VALUES (?1,?2,?3)";
+
+pub const CLEAR_AFTER_BLOCKS_QUERY:&str="DELETE FROM blocks WHERE level > ?1";
