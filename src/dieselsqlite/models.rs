@@ -103,11 +103,11 @@ impl Blueprint{
 #[diesel(table_name = super::schema::blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {
-    #[diesel(sql_type=Integer)]
+    // #[diesel(sql_type=Integer)]
     pub level: i32,
-    #[diesel(sql_type=Binary)]
+    // #[diesel(sql_type=Binary)]
     pub hash:Vec<u8>,
-    #[diesel(sql_type=Binary)]
+    // #[diesel(sql_type=Binary)]
     pub block:Vec<u8>
 }
 
@@ -261,7 +261,7 @@ impl PendingConfirmation{
 
 }
 
-#[derive(Queryable, Selectable, Insertable)]
+#[derive(Queryable, Selectable, Insertable,QueryableByName)]
 #[diesel(table_name = super::schema::transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Transaction{
@@ -285,18 +285,18 @@ impl Transaction{
     }
 
     pub fn select_receipt(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>){
-        use super::schema::transactions::dsl::*;
-        transactions
-        .find(queried_hash)
-        .select((block_hash,
-                block_number,
-                index_,
-                hash,
-                from_,
-                to_,
-                receipt_fields))
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting transaction receipt with hash:{:?}:{}",queried_hash,e))
+        let receipt=sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
+        .bind::<Binary,_>(queried_hash)
+        .get_result::<Transaction>(connection)
+        .unwrap_or_else(|e| panic!("Error selecting transaction receipt with specified hash:{}",e));
+        (receipt.block_hash,
+        receipt.block_number,
+        receipt.index_,
+        receipt.hash,
+        receipt.from_,
+        receipt.to_,
+        receipt.receipt_fields)
+        
     }
 
     pub fn select_receipts_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Vec<(Vec<u8>,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>{
@@ -314,19 +314,17 @@ impl Transaction{
     }
 
     pub fn select_object(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>){
-        use super::schema::transactions::dsl::*;
-        transactions
-        .find(queried_hash)
-        .select((block_hash,
-                block_number,
-                index_,
-                hash,
-                from_,
-                to_,
-                object_fields)
-        )
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting transaction object with hash:{:?}:{}",queried_hash,e))
+        let object=sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
+        .bind::<Binary,_>(queried_hash)
+        .get_result::<Transaction>(connection)
+        .unwrap_or_else(|e| panic!("Error selecting transaction object with specified hash:{}",e));
+        (object.block_hash,
+        object.block_number,
+        object.index_,
+        object.hash,
+        object.from_,
+        object.to_,
+        object.object_fields)
     }
     
     pub fn select_objects_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Vec<(i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>{
