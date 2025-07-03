@@ -1,4 +1,4 @@
-use diesel::{dsl::{count, delete}, prelude::*, result::Error, sql_query, sql_types::{Binary, Integer}, upsert::excluded};
+use diesel::{dsl::{count, delete}, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded};
 
 
 #[derive(Queryable, Selectable,Insertable)]
@@ -221,43 +221,45 @@ pub struct PendingConfirmation{
 }
 
 impl PendingConfirmation{
-    pub fn insert(self,connection:&mut SqliteConnection)->usize{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::pending_confirmations::dsl::*;
+        let inserted_rows=
         diesel::insert_into(pending_confirmations)
         .values(&self)
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting pending confirmation with level:{}:{}",self.level,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
     }
 
-    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->Vec<u8>{
+    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->Result<Vec<u8>,Error>{
         use super::schema::pending_confirmations::dsl::*;
-        pending_confirmations
+        let h=pending_confirmations
         .find(queried_level)
         .select(hash)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting pending confirmation with level:{}:{}",queried_level,e))
+        .get_result(connection)?;
+        Ok(h)
     }
 
-    pub fn delete_with_level(connection:&mut SqliteConnection,queried_level:i32)->usize{
+    pub fn delete_with_level(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
         use super::schema::pending_confirmations::dsl::*;
+        let deleted_rows=
         delete(pending_confirmations.filter(level.eq(queried_level)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error deleting pending confirmation with level {} :{}",queried_level,e))
+        .execute(connection)?;
+        Ok(deleted_rows)
     }
 
-    pub fn clear(connection:&mut SqliteConnection)->usize{
+    pub fn clear(connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::pending_confirmations::dsl::*;
-        delete(pending_confirmations)
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing pending confirmations:{}",e))
+        let deleted_rows=delete(pending_confirmations)
+        .execute(connection)?;
+        Ok(deleted_rows)
     }
 
-    pub fn count(connection:&mut SqliteConnection)->i64{
+    pub fn count(connection:&mut SqliteConnection)->Result<i64,Error>{
         use super::schema::pending_confirmations::dsl::*;
-        pending_confirmations
+        let count=pending_confirmations
         .select(count(level))
-        .first(connection)
-        .unwrap_or_else(|e| panic!("Error counting pending confirmations:{}",e))
+        .first(connection)?;
+        Ok(count)
     }
 
 }
@@ -277,31 +279,32 @@ pub struct Transaction{
 }
 
 impl Transaction{
-    pub fn insert(self,connection:&mut SqliteConnection)->usize{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::transactions::dsl::*;
+        let inserted_rows=
         diesel::insert_into(transactions)
         .values(&self)
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting transaction with hash:{:?}:{}",self.hash,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
     }
 
-    pub fn select_receipt(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>){
+    pub fn select_receipt(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>),Error>{
         let receipt=sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
-        .get_result::<Transaction>(connection)
-        .unwrap_or_else(|e| panic!("Error selecting transaction receipt with specified hash:{}",e));
-        (receipt.block_hash,
+        .get_result::<Transaction>(connection)?;
+        Ok((receipt.block_hash,
         receipt.block_number,
         receipt.index_,
         receipt.hash,
         receipt.from_,
         receipt.to_,
-        receipt.receipt_fields)
+        receipt.receipt_fields))
         
     }
 
-    pub fn select_receipts_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Vec<(Vec<u8>,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>{
+    pub fn select_receipts_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Result<Vec<(Vec<u8>,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>,Error>{
         use super::schema::transactions::dsl::*;
+        let receipts=
         transactions
         .filter(block_number.eq(queried_block_number))
         .select((block_hash,
@@ -310,49 +313,50 @@ impl Transaction{
                 from_,
                 to_,
                 receipt_fields))
-        .load(connection)
-        .unwrap_or_else(|e| panic!("Error selecting transaction receipts from block number:{}:{}",queried_block_number,e))
+        .load(connection)?;
+        Ok(receipts)
     }
 
-    pub fn select_object(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>){
+    pub fn select_object(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>),Error>{
         let object=sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
-        .get_result::<Transaction>(connection)
-        .unwrap_or_else(|e| panic!("Error selecting transaction object with specified hash:{}",e));
-        (object.block_hash,
+        .get_result::<Transaction>(connection)?;
+        Ok((object.block_hash,
         object.block_number,
         object.index_,
         object.hash,
         object.from_,
         object.to_,
-        object.object_fields)
+        object.object_fields))
     }
     
-    pub fn select_objects_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Vec<(i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>{
+    pub fn select_objects_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Result<Vec<(i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>,Error>{
         use super::schema::transactions::dsl::*;
-        transactions
+        let objects=transactions
         .filter(block_number.eq(queried_block_number))
         .select((index_,
                 hash,
                 from_,
                 to_,
                 object_fields))
-        .load(connection)
-        .unwrap_or_else(|e| panic!("Error selecting transaction objects from block number:{}:{}",queried_block_number,e))
+        .load(connection)?;
+        Ok(objects)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_block_number:i32)->usize{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_block_number:i32)->Result<usize,Error>{
         use super::schema::transactions::dsl::*;
+        let cleared_rows=
         delete(transactions.filter(block_number.gt(queried_block_number)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing transactions from blocks with indices greater than {} (excluded):{}",queried_block_number,e))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_block_number:i32)->usize{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_block_number:i32)->Result<usize,Error>{
         use super::schema::transactions::dsl::*;
+        let cleared_rows=
         delete(transactions.filter(block_number.lt(queried_block_number)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing transactions from blocks with indices lesser than {} (excluded):{}",queried_block_number,e))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 }
 
@@ -365,58 +369,61 @@ pub struct ContextHash{
 }
 
 impl ContextHash{
-    pub fn insert(self,connection:&mut SqliteConnection)->usize{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::context_hashes::dsl::*;
-        
+        let inserted_rows=
         diesel::insert_into(context_hashes)
         .values(&self)
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting context hash with id:{}:{}",self.id,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
     }
 
-    pub fn select(connection:&mut SqliteConnection, queried_id:i32)->Vec<u8>{
+    pub fn select(connection:&mut SqliteConnection, queried_id:i32)->Result<Vec<u8>,Error>{
         use super::schema::context_hashes::dsl::*;
-
+        let hash=
         context_hashes
         .find(queried_id)
         .select(context_hash)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting context hash:{}:{}",queried_id,e))
+        .get_result(connection)?;
+        Ok(hash)
     }
 
-    pub fn get_latest(connection:&mut SqliteConnection)->(i32,Vec<u8>){
+    pub fn get_latest(connection:&mut SqliteConnection)->Result<(i32,Vec<u8>),Error>{
         use super::schema::context_hashes::dsl::*;
+        let latest_context=
         context_hashes
         .select((id,context_hash))
         .order(id.desc())
         .limit(1)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting latest context hash:{e}"))
+        .get_result(connection)?;
+        Ok(latest_context)
     }
 
-    pub fn get_earliest(connection:&mut SqliteConnection)->(i32,Vec<u8>){
+    pub fn get_earliest(connection:&mut SqliteConnection)->Result<(i32,Vec<u8>),Error>{
         use super::schema::context_hashes::dsl::*;
+        let earliest_context=
         context_hashes
         .filter(id.ge(0))
         .select((id,context_hash))
         .order(id.desc())
         .limit(1)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting latest context hash:{e}"))
+        .get_result(connection)?;
+        Ok(earliest_context)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_id:i32)->usize{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_id:i32)->Result<usize,Error>{
         use super::schema::context_hashes::dsl::*;
+        let cleared_rows=
         delete(context_hashes.filter(id.gt(queried_id)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing context_hashes with id greater than {} (excluded):{}",queried_id,e))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_id:i32)->usize{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_id:i32)->Result<usize,Error>{
         use super::schema::context_hashes::dsl::*;
-        delete(context_hashes.filter(id.lt(queried_id)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing context_hashes with lesser than {} (excluded):{}",queried_id,e))
+        let cleared_rows=delete(context_hashes.filter(id.lt(queried_id)))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 
 
@@ -432,53 +439,55 @@ pub struct Metadata{
 }
 
 impl Metadata {
-    pub fn insert_smart_rollup_address(connection:&mut SqliteConnection,inserted_value:&str) -> usize{
+    pub fn insert_smart_rollup_address(connection:&mut SqliteConnection,inserted_value:&str) -> Result<usize,Error>{
         use super::schema::metadata::dsl::*;
         let metadata_object=Metadata{
             key:"smart_rollup_address".to_string(),
             value:inserted_value.to_string()
         };
+        let inserted_rows=
         diesel::insert_into(metadata)
         .values(metadata_object)
         .on_conflict(key)
         .do_update()
         .set(value.eq(excluded(value)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error upserting smart rollup address:{}:{}",inserted_value,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
     }
 
-    pub fn get_smart_rollup_address(connection:&mut SqliteConnection)->String{
+    pub fn get_smart_rollup_address(connection:&mut SqliteConnection)->Result<String,Error>{
         use super::schema::metadata::dsl::*;
+        let address=
         metadata
         .find("smart_rollup_address")
         .select(value)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error getting smart rollup address:{e}"))
+        .get_result(connection)?;
+        Ok(address)
     }
 
-    pub fn insert_history_mode(connection:&mut SqliteConnection,inserted_value:&str) -> usize{
+    pub fn insert_history_mode(connection:&mut SqliteConnection,inserted_value:&str) -> Result<usize,Error>{
         use super::schema::metadata::dsl::*;
         let metadata_object=Metadata{
             key:"history_mode".to_string(),
             value:inserted_value.to_string()
         };
-        
-        diesel::insert_into(metadata)
+        let inserted_rows=diesel::insert_into(metadata)
         .values(metadata_object)
         .on_conflict(key)
         .do_update()
         .set(value.eq(excluded(value)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error upserting smart rollup address:{}:{}",inserted_value,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
     }
 
-    pub fn get_history_mode(connection:&mut SqliteConnection)->String{
+    pub fn get_history_mode(connection:&mut SqliteConnection)->Result<String,Error>{
         use super::schema::metadata::dsl::*;
+        let history_mode=
         metadata
         .find("history_mode")
         .select(value)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error getting smart rollup address:{e}"))
+        .get_result(connection)?;
+        Ok(history_mode)
     }
 
 }

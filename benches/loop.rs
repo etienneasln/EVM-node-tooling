@@ -198,7 +198,7 @@ fn criterion_first_select_then_insert(c:&mut Criterion){
     if database_url.as_str() != ":memory:"{
         let connection=&mut establish_connection();
         let mut id=FIRST_INSERT;
-        let (payload,timestamp)=Blueprint::select(connection, id);
+        let (payload,timestamp)=Blueprint::select(connection, id).unwrap();
         let _=Blueprint::clear_after(connection, FIRST_INSERT-1);
         
 
@@ -215,7 +215,7 @@ fn criterion_second_select_then_insert(c:&mut Criterion){
         let connection=&mut establish_connection();
         let mut id=SECOND_INSERT;
 
-        let (payload,timestamp)=Blueprint::select(connection, id);
+        let (payload,timestamp)=Blueprint::select(connection, id).unwrap();
         let _=Blueprint::clear_after(connection, SECOND_INSERT-1);
 
         c.bench_function("second select then insert", |b| b.iter(|| run_insert_blueprint_diesel(connection,&mut id,&payload,timestamp)));
@@ -230,7 +230,7 @@ fn criterion_third_select_then_insert(c:&mut Criterion){
         let connection=&mut establish_connection();
         let mut id=THIRD_INSERT;
 
-        let (payload,timestamp)=Blueprint::select(connection, id);
+        let (payload,timestamp)=Blueprint::select(connection, id).unwrap();
         let _=Blueprint::clear_after(connection, THIRD_INSERT-1);
 
         c.bench_function("third select then insert", |b| b.iter(|| run_insert_blueprint_diesel(connection,&mut id,&payload,timestamp)));
