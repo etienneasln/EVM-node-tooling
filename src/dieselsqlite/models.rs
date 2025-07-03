@@ -103,11 +103,8 @@ impl Blueprint{
 #[diesel(table_name = super::schema::blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {
-    // #[diesel(sql_type=Integer)]
     pub level: i32,
-    // #[diesel(sql_type=Binary)]
     pub hash:Vec<u8>,
-    // #[diesel(sql_type=Binary)]
     pub block:Vec<u8>
 }
 

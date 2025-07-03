@@ -8,24 +8,24 @@ fn test_blueprint_insert_select_clearafter(){
 
     let inserted_payload="payload".as_bytes().to_vec();
     let inserted_timestamp=1000;
-    let base_insert_index=Blueprint::top_level(&mut connection)+1;
+    let base_insert_index=Blueprint::top_level(&mut connection);
 
     let blueprint=Blueprint{
-        id:base_insert_index,
+        id:base_insert_index+1,
         payload:inserted_payload.clone(),
         timestamp:inserted_timestamp
     };
 
     let _=blueprint.insert(&mut connection);
     
-    let (payload,timestamp)=Blueprint::select(&mut connection, base_insert_index);
+    let (payload,timestamp)=Blueprint::select(&mut connection, base_insert_index+1);
     
     assert_eq!(payload,inserted_payload);
     assert_eq!(timestamp,inserted_timestamp);
 
     let expected_rows_cleared:usize=1;
     
-    let rows_cleared=Blueprint::clear_after(&mut connection, base_insert_index-1);
+    let rows_cleared=Blueprint::clear_after(&mut connection, base_insert_index);
 
     assert_eq!(rows_cleared,expected_rows_cleared);
     
@@ -85,10 +85,10 @@ fn test_block_insert_selects_clearafter(){
     
     let inserted_hash="hash".as_bytes().to_vec();
     let inserted_block="block".as_bytes().to_vec();
-    let base_insert_index=Block::top_level(&mut connection)+1;
+    let base_insert_index=Block::top_level(&mut connection);
 
     let block=Block{
-        level:base_insert_index,
+        level:base_insert_index+1,
         hash:inserted_hash.clone(),
         block:inserted_block.clone()
     };
@@ -97,9 +97,9 @@ fn test_block_insert_selects_clearafter(){
     let _=block.insert(&mut connection);
     
     let block_from_level=Block
-::select_with_level(&mut connection, base_insert_index);
+::select_with_level(&mut connection, base_insert_index+1);
     let hash_of_number=Block
-::select_hash_of_number(&mut connection, base_insert_index);
+::select_hash_of_number(&mut connection, base_insert_index+1);
     let number_of_hash=Block
 ::select_number_of_hash(&mut connection, &hash_of_number);
     let block_from_hash=Block
@@ -107,17 +107,36 @@ fn test_block_insert_selects_clearafter(){
     
     assert_eq!(block_from_level,inserted_block);
     assert_eq!(hash_of_number,inserted_hash);
-    assert_eq!(number_of_hash,base_insert_index);
+    assert_eq!(number_of_hash,base_insert_index+1);
     assert_eq!(block_from_hash,inserted_block);
 
 
     let expected_rows_cleared:usize=1;
     
     let rows_cleared=Block
-::clear_after(&mut connection, base_insert_index-2);
+::clear_after(&mut connection, base_insert_index);
 
     assert_eq!(rows_cleared,expected_rows_cleared);
     
+}
+
+#[test]
+fn test_block_selects(){
+    let mut connection=establish_connection();
+
+    let select_index=Block::top_level(&mut connection);
+
+    let block_from_level=Block
+::select_with_level(&mut connection, select_index);
+    let hash_of_number=Block
+::select_hash_of_number(&mut connection, select_index);
+    let number_of_hash=Block
+::select_number_of_hash(&mut connection, &hash_of_number);
+    let block_from_hash=Block
+::select_with_hash(&mut connection, &hash_of_number);
+
+    assert_eq!(block_from_hash,block_from_level);
+    assert_eq!(number_of_hash,select_index);
 }
 
 #[test]
@@ -169,3 +188,30 @@ fn test_transaction_select_insert_clear(){
     
 }
 
+#[test]
+fn test_transaction_selects(){
+    let mut connection=establish_connection();
+    let select_block_level=Block::top_level(&mut connection);
+    
+    let receipts=Transaction::select_receipts_from_block_number(&mut connection, select_block_level);
+
+
+    let objects=Transaction::select_objects_from_block_number(&mut connection, select_block_level);
+
+
+    let (vec_block_hash,vec_index_,vec_hash,vec_from_,vec_to_,vec_receipt_fields)=(&receipts[0]).clone();
+    let (_,_,_,_,vec_object_fields)=(&objects[0]).clone();
+
+    let (block_hash,block_number,index_,hash,from_,to_,receipt_fields)=Transaction::select_receipt(&mut connection, &vec_hash);
+    let (_,_,_,_,_,_,object_fields)=Transaction::select_object(&mut connection, &vec_hash);
+
+
+    assert_eq!(block_hash,vec_block_hash);
+    assert_eq!(block_number,select_block_level);
+    assert_eq!(index_, vec_index_);
+    assert_eq!(hash,vec_hash);
+    assert_eq!(from_,vec_from_);
+    assert_eq!(to_,vec_to_);
+    assert_eq!(receipt_fields,vec_receipt_fields);
+    assert_eq!(object_fields,vec_object_fields);
+}

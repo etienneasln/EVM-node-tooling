@@ -70,8 +70,11 @@ fn main(){
     println!("Transaction objects top level block:{:?}",objects);
 
     let (vec_block_hash,vec_index_,vec_hash,vec_from_,vec_to_,vec_receipt_fields)=(&receipts[0]).clone();
+    let (_,_,_,_,vec_object_fields)=(&objects[0]).clone();
 
     let (block_hash,block_number,index_,hash,from_,to_,receipt_fields)=Transaction::select_receipt(&mut connection, &vec_hash);
+    let (_,_,_,_,_,_,object_fields)=Transaction::select_object(&mut connection, &vec_hash);
+
 
     assert_eq!(block_hash,vec_block_hash);
     assert_eq!(block_number,top_level);
@@ -80,6 +83,7 @@ fn main(){
     assert_eq!(from_,vec_from_);
     assert_eq!(to_,vec_to_);
     assert_eq!(receipt_fields,vec_receipt_fields);
+    assert_eq!(object_fields,vec_object_fields);
 
 
 
