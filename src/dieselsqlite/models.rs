@@ -1,4 +1,4 @@
-use diesel::{dsl::{count, delete}, prelude::*, sql_query, sql_types::{Binary, Integer}, upsert::excluded};
+use diesel::{dsl::{count, delete}, prelude::*, result::Error, sql_query, sql_types::{Binary, Integer}, upsert::excluded};
 
 
 #[derive(Queryable, Selectable,Insertable)]
@@ -15,83 +15,82 @@ impl Blueprint{
 
     
     
-    pub fn select(connection:&mut SqliteConnection,queried_id:i32)->(Vec<u8>,i32){
+    pub fn select(connection:&mut SqliteConnection,queried_id:i32)->Result<(Vec<u8>,i32),Error>{
         use super::schema::blueprints::dsl::*;
-            
-        blueprints
+        let tuple= blueprints
         .find(queried_id)
         .select((payload,timestamp))
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting blueprint with id:{} :{}",queried_id,e))
+        .get_result(connection)?;
+        Ok(tuple)
     }
 
-    pub fn insert(self,connection:&mut SqliteConnection)->usize{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize, Error>{
         use super::schema::blueprints::dsl::*;
-
-        diesel::insert_into(blueprints)
+        let inserted_rows=diesel::insert_into(blueprints)
         .values(&self)
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting blueprint with id:{} :{}",self.id,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
+        
     }
 
 
-    pub fn select_range(connection:&mut SqliteConnection,lowerlevel:i32,upperlevel:i32)->Vec<(i32,Vec<u8>)>{
+    pub fn select_range(connection:&mut SqliteConnection,lowerlevel:i32,upperlevel:i32)->Result<Vec<(i32,Vec<u8>)>,Error>{
         use super::schema::blueprints::dsl::*;
 
-        blueprints
+        let vec=blueprints
         .filter(id.ge(lowerlevel).and(id.le(upperlevel)))
         .order(id.asc())
         .select((id,payload))
-        .load(connection)
-        .unwrap_or_else(|e| panic!("Error selecting blueprints from level {} to level {} (both included):{}",lowerlevel,upperlevel,e))
-
-    
+        .load(connection)?;
+        Ok(vec)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,level:i32)->usize{
+    pub fn clear_after(connection:&mut SqliteConnection,level:i32)->Result<usize,Error>{
         use super::schema::blueprints::dsl::*;
-        delete(blueprints.filter(id.gt(level)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing blueprints after level {} (excluded):{}",level,e))
+        let cleared_rows=delete(blueprints.filter(id.gt(level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+
+        
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,level:i32)->usize{
+    pub fn clear_before(connection:&mut SqliteConnection,level:i32)->Result<usize,Error>{
         use super::schema::blueprints::dsl::*;
-
-        delete(blueprints.filter(id.lt(level)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing blueprints before level {} (excluded):{}",level,e))
+        let cleared_rows=delete(blueprints.filter(id.lt(level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
-
     //For testing
 
-    pub fn count(connection:&mut SqliteConnection)->i64{
+    pub fn count(connection:&mut SqliteConnection)->Result<i64,Error>{
         use super::schema::blueprints::dsl::*;
             
-        blueprints
+        let count=blueprints
         .select(count(id))
-        .first(connection)
-        .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
+        .first(connection)?;
+        Ok(count)
     }
 
-    pub fn base_level(connection:&mut SqliteConnection)->i32{
+    pub fn base_level(connection:&mut SqliteConnection)->Result<i32,Error>{
         use super::schema::blueprints::dsl::*;
+        let base_level=
         blueprints
         .select(id)
         .order(id.asc())
         .limit(1)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting base level:{e}"))
+        .get_result(connection)?;
+        Ok(base_level)
     }
 
-    pub fn top_level(connection:&mut SqliteConnection)->i32{
+    pub fn top_level(connection:&mut SqliteConnection)->Result<i32,Error>{
         use super::schema::blueprints::dsl::*;
+        let top_level=
         blueprints
         .select(id)
         .order(id.desc())
         .limit(1)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting top level:{e}"))
+        .get_result(connection)?;
+        Ok(top_level)
     }
 
 
@@ -110,99 +109,104 @@ pub struct Block {
 
 impl Block {
 
-    
-
-    pub fn insert(self,connection:&mut SqliteConnection)->usize{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::blocks::dsl::*;
-        diesel::insert_into(blocks)
+        let inserted_rows=diesel::insert_into(blocks)
         .values(&self)
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error inserting block with level:{} :{}",self.level,e))
+        .execute(connection)?;
+        Ok(inserted_rows)
+        
     }
 
-    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->Vec<u8>{
+    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->Result<Vec<u8>,Error>{
         use super::schema::blocks::dsl::*;
+        let b=
         blocks
         .find(queried_level)
         .select(block)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",queried_level,e))
+        .get_result(connection)?;
+        Ok(b)
     }
 
 
-    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Vec<u8>{
+    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<Vec<u8>,Error>{
+        let b=
         sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
-        .get_result::<Block>(connection)
-        .unwrap_or_else(|e| panic!("Error selecting block with specified hash:{}",e))
-        .block
+        .get_result::<Block>(connection)?;
+        Ok(b.block)
+
     }
 
-    pub fn select_hash_of_number(connection:&mut SqliteConnection,queried_level:i32)->Vec<u8>{
+    pub fn select_hash_of_number(connection:&mut SqliteConnection,queried_level:i32)->Result<Vec<u8>,Error>{
         use super::schema::blocks::dsl::*;
-
+        let h=
         blocks
         .find(queried_level)
         .select(hash)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting block with level:{} :{}",queried_level,e))
+        .get_result(connection)?;
+        Ok(h)
     }
 
 
-    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->i32{
+    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<i32,Error>{
+        let b=
         sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
-        .get_result::<Block>(connection)
-        .unwrap_or_else(|e| panic!("Error selecting level with specified hash:{}",e))
-        .level
+        .get_result::<Block>(connection)?;
+        Ok(b.level)
     }
 
     
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->usize{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
         use super::schema::blocks::dsl::*;
+        let cleared_rows=
         delete(blocks.filter(level.gt(queried_level)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing blocks after level {} (excluded):{}",queried_level,e))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->usize{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
         use super::schema::blocks::dsl::*;
+        let cleared_rows=
         delete(blocks.filter(level.lt(queried_level)))
-        .execute(connection)
-        .unwrap_or_else(|e| panic!("Error clearing blocks before level {} (excluded):{}",queried_level,e))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 
     //For testing
 
-    pub fn count(connection:&mut SqliteConnection)->i64{
+    pub fn count(connection:&mut SqliteConnection)->Result<i64,Error>{
         use super::schema::blocks::dsl::*;
 
-            
+        let count=  
         blocks
         .select(count(level))
-        .first(connection)
-        .unwrap_or_else(|e| panic!("Error counting blueprints:{}",e))
+        .first(connection)?;
+        Ok(count)
     }
 
-    pub fn base_level(connection:&mut SqliteConnection)->i32{
+    pub fn base_level(connection:&mut SqliteConnection)->Result<i32,Error>{
         use super::schema::blocks::dsl::*;
+        let base_level=
         blocks
         .select(level)
         .order(level.asc())
         .limit(1)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting base level:{e}"))
+        .get_result(connection)?;
+        Ok(base_level)
     }
 
-    pub fn top_level(connection:&mut SqliteConnection)->i32{
+    pub fn top_level(connection:&mut SqliteConnection)->Result<i32,Error>{
         use super::schema::blocks::dsl::*;
+        let base_level=
         blocks
         .select(level)
         .order(level.desc())
         .limit(1)
-        .get_result(connection)
-        .unwrap_or_else(|e| panic!("Error selecting top level:{e}"))
+        .get_result(connection)?;
+        Ok(base_level)
     }
     
 }
