@@ -42,3 +42,7 @@ Run the `cargo run --bin manualbenchingselectwithlevel` command.
 #### Insert
 
 Run the `cargo run --bin manualbenchinginsert` command.
+
+## Testing
+
+Run tests with `cargo test -- --test-threads=1`. Tests have to be ran sequentially because SQLite doesn't allow concurrent writes.

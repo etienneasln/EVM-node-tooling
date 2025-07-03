@@ -6,7 +6,7 @@ fn test_blueprint_insert_select_clearafter(){
     let connection=&mut establish_connection();
 
 
-    let _ = connection.transaction::<_,Error,_>(|conn| {
+    connection.transaction::<_,Error,_>(|conn| {
         let inserted_payload="payload".as_bytes().to_vec();
         let inserted_timestamp=1000;
         let base_insert_index=Blueprint::top_level(conn)?;
@@ -30,7 +30,7 @@ fn test_blueprint_insert_select_clearafter(){
 
         assert_eq!(rows_cleared,expected_rows_cleared);
         Ok(())
-    });
+    }).unwrap();
 
     
 }
@@ -39,7 +39,7 @@ fn test_blueprint_insert_select_clearafter(){
 fn test_blueprint_insert_selectrange_clearafter(){
     let connection=&mut establish_connection();
 
-    let _ = connection.transaction::<_,Error,_>(|conn|{
+    connection.transaction::<_,Error,_>(|conn|{
         let inserted_payloads=vec!["payload1".as_bytes().to_vec(),"payload2".as_bytes().to_vec(),"payload3".as_bytes().to_vec()];
         let inserted_timestamps=vec![1000,1001,1002];
         let base_insert_index=Blueprint::top_level(conn)?;
@@ -81,7 +81,7 @@ fn test_blueprint_insert_selectrange_clearafter(){
         assert_eq!(rows_cleared,expected_rows_cleared);
 
         Ok(())
-    });
+    }).unwrap();
 
     
     
@@ -91,7 +91,7 @@ fn test_blueprint_insert_selectrange_clearafter(){
 fn test_block_insert_selects_clearafter(){
     let connection=&mut establish_connection();
 
-    let _ = connection.transaction::<_,Error,_>(|conn|{
+    connection.transaction::<_,Error,_>(|conn|{
         let inserted_hash="hash".as_bytes().to_vec();
         let inserted_block="block".as_bytes().to_vec();
         let base_insert_index=Block::top_level(conn)?;
@@ -127,7 +127,7 @@ fn test_block_insert_selects_clearafter(){
 
         assert_eq!(rows_cleared,expected_rows_cleared);
         Ok(())
-    });
+    }).unwrap();
 
     
     
@@ -138,7 +138,7 @@ fn test_block_insert_selects_clearafter(){
 fn test_block_selects(){
     let connection=&mut establish_connection();
 
-    let _ = connection.transaction::<_,Error,_>(|conn|{
+    connection.transaction::<_,Error,_>(|conn|{
         let select_index=Block::top_level(conn)?;
 
         let block_from_level=Block
@@ -153,7 +153,7 @@ fn test_block_selects(){
         assert_eq!(block_from_hash,block_from_level);
         assert_eq!(number_of_hash,select_index);
         Ok(())
-    });
+    }).unwrap();
 
     
 }
@@ -162,7 +162,7 @@ fn test_block_selects(){
 fn test_transaction_select_insert_clear(){
     let connection=&mut establish_connection();
 
-    let _ = connection.transaction::<_,Error,_>(|conn|{
+    connection.transaction::<_,Error,_>(|conn|{
         let inserted_block_hash:Vec<u8>="block_hash".as_bytes().to_vec();
         let inserted_block_number=Block::top_level(conn)?+1;
         let inserted_index_=0;
@@ -203,7 +203,7 @@ fn test_transaction_select_insert_clear(){
 
         assert_eq!(rows_cleared,expected_rows_cleared);
         Ok(())
-    });
+    }).unwrap();
 
     
 
@@ -214,7 +214,7 @@ fn test_transaction_select_insert_clear(){
 fn test_transaction_selects(){
     let connection=&mut establish_connection();
 
-    let _ = connection.transaction::<_,Error,_>(|conn|{
+    connection.transaction::<_,Error,_>(|conn|{
         let select_block_level=Block::top_level(conn)?;
         
         let receipts=Transaction::select_receipts_from_block_number(conn, select_block_level)?;
@@ -239,6 +239,6 @@ fn test_transaction_selects(){
         assert_eq!(receipt_fields,vec_receipt_fields);
         assert_eq!(object_fields,vec_object_fields);
         Ok(())
-    });
+    }).unwrap();
     
 }
