@@ -6,7 +6,7 @@ use rusqlite::params;
 
 fn main(){
     let database_url=load_database_url();
-    let mut dieselconnection=establish_connection();
+    let dieselconnection=&mut establish_connection();
     let rusqliteconnection=rusqlite_connection();
 
     let id=18987875;
@@ -19,12 +19,12 @@ fn main(){
         CREATE_TABLE_BLUEPRINTS_QUERY,
         (), );
 
-        let _ = diesel::sql_query(CREATE_TABLE_BLUEPRINTS_QUERY).execute(&mut dieselconnection);
+        let _ = diesel::sql_query(CREATE_TABLE_BLUEPRINTS_QUERY).execute(dieselconnection);
     }else{
-        set_journal_mode_to_wal(&mut dieselconnection);
-        set_synchronous_mode_to_full(&mut dieselconnection);
+        set_journal_mode_to_wal(dieselconnection);
+        set_synchronous_mode_to_full(dieselconnection);
         
-        let _=Blueprint::clear_after(&mut dieselconnection, id-1);
+        let _=Blueprint::clear_after(dieselconnection, id-1);
     }
 
     
@@ -35,10 +35,10 @@ fn main(){
 
     
     let start=Instant::now();
-    let _=blueprint.insert(&mut dieselconnection);
+    let _=blueprint.insert(dieselconnection);
     let duration=start.elapsed();
 
-    let _=Blueprint::clear_after(&mut dieselconnection, id-1);
+    let _=Blueprint::clear_after(dieselconnection, id-1);
 
 
     let start2=Instant::now();
