@@ -1,8 +1,8 @@
+use std::fmt::{self, Display, Formatter};
 use actix_web::{Result,error, http::{header::ContentType, StatusCode}, post, web, App, HttpResponse, HttpServer, Responder};
 use diesel::{result::Error as dieselError};
 use evmnodetooling::dieselsqlite::{establish_connection,models::{Blueprint,Block}};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use derive_more::derive::{Display,Error as Errormacro};
 use serde_json::Error as jsonError;
 
 
@@ -25,14 +25,11 @@ enum SqlResponse{
     NumbersofRowsAffected{number:usize},
 }
 
-#[derive(Debug, Display, Errormacro)]
+#[derive(Debug)]
 enum ServerError{
-    #[display("Internal error")]
-    InternalError,
-    #[display("Unknown method")]
-    UnknownMethod,
-    #[display("BadParameterFormat")]
-    BadParameterFormat
+    InternalError{error:dieselError},
+    UnknownMethod{method_name:String},
+    BadParameterFormat{error:jsonError}
 }
 
 impl error::ResponseError for ServerError{
@@ -44,28 +41,43 @@ impl error::ResponseError for ServerError{
 
     fn status_code(&self) -> StatusCode {
         match *self {
-            ServerError::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
-            ServerError::UnknownMethod => StatusCode::BAD_REQUEST,
-            ServerError::BadParameterFormat=> StatusCode::BAD_REQUEST
+            ServerError::InternalError{ error: _ } => StatusCode::INTERNAL_SERVER_ERROR,
+            ServerError::UnknownMethod{method_name:_} => StatusCode::BAD_REQUEST,
+            ServerError::BadParameterFormat{error:_}=> StatusCode::BAD_REQUEST
         }
     }
 }
 
+impl Display for ServerError{
+    fn fmt(&self, f:&mut Formatter)->fmt::Result{
+        let string=match self{
+            ServerError::InternalError { error } => format!("Internal database error:{}",error),
+            ServerError::UnknownMethod { method_name }=>format!("Unknow method:{}",method_name),
+            ServerError::BadParameterFormat { error }=>format!("Invalid parameters:{}",error),
+        };
+        write!(f,"{}", string)
+    }
+        
+}
+
+
 impl From<jsonError> for ServerError{
-    fn from(_error:jsonError)->ServerError{
-        ServerError::BadParameterFormat
+    fn from(error:jsonError)->ServerError{
+        ServerError::BadParameterFormat{error}
     }
 }
 
 impl From<dieselError> for ServerError{
-    fn from(_error:dieselError)->ServerError{
-        ServerError::InternalError
+    fn from(error:dieselError)->ServerError{
+        ServerError::InternalError{error}
     }
 }
 
 fn extract_parameter<T>(param:&serde_json::Value)->Result<T,jsonError> where T:DeserializeOwned{
     serde_json::from_value(param.clone())
 }
+
+
 
 
 
@@ -138,10 +150,7 @@ async fn answer_query(query: web::Json<Sqlquery>) -> Result<impl Responder,Serve
                 SqlResponse::NumbersofRowsAffected { number:clear_before_result}
             }
             _=>{
-                // let response=SqlResponse::MethodNotSupported{
-                //     message:format!("Specified request {method_requested} is not supported")
-                // };
-                return Err(ServerError::UnknownMethod);
+                return Err(ServerError::UnknownMethod{method_name:method_requested.to_string()});
             }
         };
     
