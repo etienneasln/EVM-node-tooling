@@ -12,6 +12,7 @@ dotenvy="0.15"
 time = {version="0.3.41",features=["serde"]}
 rusqlite = { version = "0.35.0", features = ["bundled"] }
 rand="0.9.1"
+derive_more = "2.0.1"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
