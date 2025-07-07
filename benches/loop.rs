@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use diesel::{RunQueryDsl, SqliteConnection};
-use evmnodetooling::dieselsqlite::{establish_connection, load_database_url, models::{Block, Blueprint}, rusqlite_connection, set_journal_mode_to_wal, set_synchronous_mode_to_full, CLEAR_AFTER_BLOCKS_QUERY, CLEAR_AFTER_BLUEPRINTS_QUERY, CREATE_TABLE_BLOCKS_QUERY, CREATE_TABLE_BLUEPRINTS_QUERY, INSERT_INTO_BLOCKS_QUERY, INSERT_INTO_BLUEPRINTS_QUERY};
+use diesel::{result::Error, Connection as _, RunQueryDsl, SqliteConnection};
+use evmnodetooling::dieselsqlite::{*, models::*};
 use rusqlite::{params, Connection};
 
 //Update according to database content
@@ -127,8 +127,8 @@ fn run_insert_then_clear_blueprint_diesel(connection:&mut SqliteConnection,id:i3
     let blueprint=Blueprint{
         id,payload:payload.clone(),timestamp
     };
-    blueprint.insert(connection);
-    Blueprint::clear_after(connection, id-1);
+    blueprint.insert(connection).unwrap();
+    Blueprint::clear_after(connection, id-1).unwrap();
 }
 
 fn run_insert_then_clear_blueprint_rusqlite(connection:&Connection,id:i32,payload:&Vec<u8>,timestamp:i32){
@@ -182,8 +182,8 @@ fn run_insert_then_clear_block_diesel(connection:&mut SqliteConnection,level:i32
     let block=Block{
         level,hash:hash.clone(),block:block.clone()
     };
-    block.insert(connection);
-    Block::clear_after(connection, level-1);
+    block.insert(connection).unwrap();
+    Block::clear_after(connection, level-1).unwrap();
 }
 
 fn run_insert_then_clear_block_rusqlite(connection:&Connection,level:i32,hash:&Vec<u8>,block:&Vec<u8>){
@@ -250,7 +250,7 @@ fn criterion_block_select_with_level(c:&mut Criterion){
         let connection=&mut establish_connection();
         let id=SELECT_INDEX;
 
-        c.bench_function("block_select_with_level", |b| b.iter(|| run_select_block_with_level(connection,id)));
+        c.bench_function("block_select_with_level",  |b| b.iter(|| run_select_block_with_level(connection,id)));
     }
 
 }
@@ -259,14 +259,103 @@ fn run_select_block_with_level(connection:&mut SqliteConnection,level:i32){
     let _=Block::select_with_level(connection, level);
 }
 
+fn criterion_apply_blueprint(c:&mut Criterion){
+    let database_url=load_database_url();
+    if database_url.as_str()!=":memory:"{
+        
+        let mut connection=establish_connection();
+        let select_index=Blueprint::base_level(&mut connection).unwrap();
+        let clear_index=Blueprint::top_level(&mut connection).unwrap();
+        
+
+        let setup=||{
+            let mut connection=establish_connection();
+            
+            let insert_index= Blueprint::top_level(&mut connection).unwrap()+1;
+            // println!("Insert_index:{}",insert_index);
+            let (payload,timestamp)=Blueprint::select(&mut connection, select_index).unwrap();
+            let blueprint=Blueprint{
+                id:insert_index,payload,timestamp
+            };
+            let block=Block::select_with_level(&mut connection, select_index).unwrap();
+            let mut bytes=[0u8;32];
+            rand::fill(&mut bytes);
+            let block=Block{
+                level:insert_index,hash:Vec::from(bytes),block
+            };
+            let transactions_receipts=Transaction::select_receipts_from_block_number(&mut connection, select_index).unwrap();
+            let transaction_objects=Transaction::select_objects_from_block_number(&mut connection, select_index).unwrap();
+
+
+            let transactions=transactions_receipts.into_iter()
+            .zip(transaction_objects.into_iter())
+            .map(|((block_hash,index_,_,from_,to_,receipt_fields),
+            (_,_,_,_,object_fields))|
+                Transaction{
+                    block_hash,
+                    block_number:insert_index,
+                    index_,
+                    hash:{rand::fill(&mut bytes);
+                        Vec::from(bytes)},
+                    from_,
+                    to_,
+                    receipt_fields,
+                    object_fields,
+                }
+            ).collect::<Vec<Transaction>>();
+            let context_hash=ContextHash{
+                id:insert_index,
+                context_hash:ContextHash::select(&mut connection, select_index).unwrap()
+            };
+            (connection,blueprint,block,transactions,context_hash)
+
+        };
+
+        let routine=|(mut connection,blueprint,block,transactions,context_hash)| 
+                run_apply_blueprint(&mut connection, blueprint, block, transactions, context_hash);
+
+
+        
+        
+
+        
+        c.bench_function("Apply_blueprint",  move |b| 
+            b.iter_batched(setup,routine,
+            criterion::BatchSize::PerIteration));
+        
+        let _ = Blueprint::clear_after(&mut connection, clear_index);
+        let _ = Block::clear_after(&mut connection, clear_index);
+        let _ = ContextHash::clear_after(&mut connection, clear_index);
+        let _ = Transaction::clear_after(&mut connection, clear_index);
+    }
+
+
+}
+
+fn run_apply_blueprint(connection:&mut SqliteConnection,blueprint:Blueprint,block:Block,transactions:Vec<Transaction>,context_hash:ContextHash){
+    
+    connection.transaction::<_,Error,_>(|conn|{
+        let _=PendingConfirmation::select_with_level(conn, blueprint.id);
+        // println!("blueprint_id:{}",blueprint.id);
+        blueprint.insert(conn)?;
+        block.insert(conn)?;
+        for tx in transactions{
+            tx.insert(conn)?;
+        }
+        context_hash.insert(conn)?;
+        let history_mode=Metadata::get_history_mode(conn)?;
+        Ok(())
+    }).unwrap();
+}
 
 
 
 
 criterion_group!(benches, 
-    criterion_insert_blueprint,
-    criterion_insert_then_clear_blueprint,
-    criterion_insert_then_clear_block,
+    // criterion_insert_blueprint,
+    // criterion_insert_then_clear_blueprint,
+    // criterion_insert_then_clear_block,
+    criterion_apply_blueprint
 //   criterion_block_select_with_level,
 //   criterion_first_select_then_insert,
 //   criterion_second_select_then_insert,
