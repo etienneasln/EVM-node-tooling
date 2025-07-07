@@ -6,7 +6,7 @@ fn test_blueprint_insert_select_clearafter(){
     let connection=&mut establish_connection();
 
 
-    connection.transaction::<_,Error,_>(|conn| {
+    connection.test_transaction::<_,Error,_>(|conn| {
         let inserted_payload="payload".as_bytes().to_vec();
         let inserted_timestamp=1000;
         let base_insert_index=Blueprint::top_level(conn)?;
@@ -30,7 +30,7 @@ fn test_blueprint_insert_select_clearafter(){
 
         assert_eq!(rows_cleared,expected_rows_cleared);
         Ok(())
-    }).unwrap();
+    })
 
     
 }
@@ -39,7 +39,7 @@ fn test_blueprint_insert_select_clearafter(){
 fn test_blueprint_insert_selectrange_clearafter(){
     let connection=&mut establish_connection();
 
-    connection.transaction::<_,Error,_>(|conn|{
+    connection.test_transaction::<_,Error,_>(|conn|{
         let inserted_payloads=vec!["payload1".as_bytes().to_vec(),"payload2".as_bytes().to_vec(),"payload3".as_bytes().to_vec()];
         let inserted_timestamps=vec![1000,1001,1002];
         let base_insert_index=Blueprint::top_level(conn)?;
@@ -81,8 +81,7 @@ fn test_blueprint_insert_selectrange_clearafter(){
         assert_eq!(rows_cleared,expected_rows_cleared);
 
         Ok(())
-    }).unwrap();
-
+    })
     
     
 }
@@ -91,7 +90,7 @@ fn test_blueprint_insert_selectrange_clearafter(){
 fn test_block_insert_selects_clearafter(){
     let connection=&mut establish_connection();
 
-    connection.transaction::<_,Error,_>(|conn|{
+    connection.test_transaction::<_,Error,_>(|conn|{
         let inserted_hash="hash".as_bytes().to_vec();
         let inserted_block="block".as_bytes().to_vec();
         let base_insert_index=Block::top_level(conn)?;
@@ -127,7 +126,7 @@ fn test_block_insert_selects_clearafter(){
 
         assert_eq!(rows_cleared,expected_rows_cleared);
         Ok(())
-    }).unwrap();
+    })
 
     
     
@@ -138,7 +137,7 @@ fn test_block_insert_selects_clearafter(){
 fn test_block_selects(){
     let connection=&mut establish_connection();
 
-    connection.transaction::<_,Error,_>(|conn|{
+    connection.test_transaction::<_,Error,_>(|conn|{
         let select_index=Block::top_level(conn)?;
 
         let block_from_level=Block
@@ -153,7 +152,7 @@ fn test_block_selects(){
         assert_eq!(block_from_hash,block_from_level);
         assert_eq!(number_of_hash,select_index);
         Ok(())
-    }).unwrap();
+    })
 
     
 }
@@ -162,7 +161,7 @@ fn test_block_selects(){
 fn test_transaction_select_insert_clear(){
     let connection=&mut establish_connection();
 
-    connection.transaction::<_,Error,_>(|conn|{
+    connection.test_transaction::<_,Error,_>(|conn|{
         let inserted_block_hash:Vec<u8>="block_hash".as_bytes().to_vec();
         let inserted_block_number=Block::top_level(conn)?+1;
         let inserted_index_=0;
@@ -203,7 +202,7 @@ fn test_transaction_select_insert_clear(){
 
         assert_eq!(rows_cleared,expected_rows_cleared);
         Ok(())
-    }).unwrap();
+    })
 
     
 
@@ -214,7 +213,7 @@ fn test_transaction_select_insert_clear(){
 fn test_transaction_selects(){
     let connection=&mut establish_connection();
 
-    connection.transaction::<_,Error,_>(|conn|{
+    connection.test_transaction::<_,Error,_>(|conn|{
         let select_block_level=Block::top_level(conn)?;
         
         let receipts=Transaction::select_receipts_from_block_number(conn, select_block_level)?;
@@ -239,6 +238,108 @@ fn test_transaction_selects(){
         assert_eq!(receipt_fields,vec_receipt_fields);
         assert_eq!(object_fields,vec_object_fields);
         Ok(())
-    }).unwrap();
+    })
     
+}
+
+#[test]
+fn test_apply_blueprint_iterations(){
+    let connection=&mut establish_connection();
+
+    connection.test_transaction::<_,Error,_>(|conn|{ 
+        let select_index=Blueprint::base_level(conn)?;
+        let clear_index=Blueprint::top_level(conn)?;
+        
+        let (payload,timestamp)=Blueprint::select(conn, select_index)?;
+        let mut bytes=[0u8;32];
+        let block_vector=Block::select_with_level(conn, select_index)?;
+
+        let transactions_receipts=Transaction::select_receipts_from_block_number(conn, select_index)?;
+        let transaction_objects=Transaction::select_objects_from_block_number(conn, select_index)?;
+
+        let context_hash_vector=ContextHash::select(conn, select_index)?;
+        
+        for _i in 0..10{
+            let insert_index=Blueprint::top_level(conn)?+1;
+        
+            
+            let blueprint=Blueprint{
+                id:insert_index,payload:payload.clone(),timestamp
+            };
+            
+            
+            rand::fill(&mut bytes);
+            let hash=Vec::from(bytes);
+            
+            
+            
+            let block=Block{
+                level:insert_index,hash:hash.clone(),block:block_vector.clone()
+            };
+            
+
+            let transactions=transactions_receipts
+                .clone()
+                .into_iter()
+                .zip(transaction_objects.clone()
+                    .into_iter())
+                .map(|((block_hash,index_,_,from_,to_,receipt_fields),
+                (_,_,_,_,object_fields))|
+                    Transaction{
+                        block_hash,
+                        block_number:insert_index,
+                        index_,
+                        hash:{rand::fill(&mut bytes);
+                            Vec::from(bytes)},
+                        from_,
+                        to_,
+                        receipt_fields,
+                        object_fields,
+                    }
+                ).collect::<Vec<Transaction>>();
+            
+            
+            let context_hash=ContextHash{
+                id:insert_index,
+                context_hash:context_hash_vector.clone()
+            };
+
+            let _=PendingConfirmation::select_with_level(conn, blueprint.id);
+            // println!("blueprint_id:{}",blueprint.id);
+            blueprint.insert(conn)?;
+            block.insert(conn)?;
+            for tx in transactions{
+                tx.insert(conn)?;
+            }
+            context_hash.insert(conn)?;
+            let _history_mode=Metadata::get_history_mode(conn)?;
+
+            let (insertedpayload, insertedtimestamp)=Blueprint::select(conn, insert_index)?;
+            let insertedhash=Block::select_hash_of_number(conn, insert_index)?;
+            let insertedblock=Block::select_with_level(conn, insert_index)?;
+
+            let _inserted_transactions_receipts=Transaction::select_receipts_from_block_number(conn, insert_index)?;
+            let _inserted_transaction_objects=Transaction::select_objects_from_block_number(conn, insert_index)?;
+            
+            let inserted_context_hash=ContextHash::select(conn,insert_index)?;
+
+
+            assert_eq!(payload,insertedpayload);
+            assert_eq!(timestamp,insertedtimestamp);
+            assert_eq!(hash,insertedhash);
+            assert_eq!(block_vector,insertedblock);
+            // assert_eq!(transactions_receipts,inserted_transactions_receipts);
+            // assert_eq!(transaction_objects,inserted_transaction_objects);
+            assert_eq!(context_hash_vector,inserted_context_hash);
+        }
+        
+
+        Blueprint::clear_after(conn, clear_index)?;
+        Block::clear_after(conn, clear_index)?;
+        ContextHash::clear_after(conn, clear_index)?;
+        Transaction::clear_after(conn, clear_index)?;
+
+        Ok(())
+    })
+   
 }
