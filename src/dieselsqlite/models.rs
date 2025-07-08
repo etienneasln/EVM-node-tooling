@@ -1,6 +1,5 @@
 use diesel::{dsl::*, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded};
 
-use crate::dieselsqlite::schema::{kernel_upgrades, sequencer_upgrades};
 
 
 
@@ -672,7 +671,7 @@ impl SequencerUpgrade{
     }
 
 
-     pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
         use super::schema::sequencer_upgrades::dsl::*;
         let cleared_rows=
         delete(sequencer_upgrades.filter(injected_before.gt(queried_level)))
@@ -696,9 +695,108 @@ impl SequencerUpgrade{
         .execute(connection)?;
         Ok(cleared_rows)
     }
-
-
 }
+
+
+#[derive(Queryable, Selectable, Insertable,QueryableByName)]
+#[diesel(table_name = super::schema::delayed_transactions)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct DelayedTransaction{
+    pub injected_before:i32,
+    pub hash:Vec<u8>,
+    pub payload:Vec<u8>
+}
+
+impl DelayedTransaction{
+    pub fn insert(self, connection:&mut SqliteConnection)->Result<usize,Error>{
+        use super::schema::delayed_transactions::dsl::*;
+        let inserted_rows=
+        insert_into(delayed_transactions)
+        .values(&self)
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn select_at_level(connection:&mut SqliteConnection,queried_injected_before:i32)->Result<Vec<u8>,Error>{
+        use super::schema::delayed_transactions::dsl::*;
+        let p=
+        delayed_transactions
+        .filter(injected_before.eq(queried_injected_before))
+        .select(payload)
+        .get_result(connection)?;
+        Ok(p)
+    }
+
+    pub fn select_at_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<Vec<u8>,Error>{
+        let dt=
+        sql_query("SELECT * FROM delayed_transactions WHERE CAST(hash as BLOB)=?1")
+        .bind::<Binary,_>(queried_hash)
+        .get_result::<DelayedTransaction>(connection)?;
+        Ok(dt.payload)
+    }
+
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::delayed_transactions::dsl::*;
+        let cleared_rows=
+        delete(delayed_transactions.filter(injected_before.gt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::delayed_transactions::dsl::*;
+        let cleared_rows=
+        delete(delayed_transactions.filter(injected_before.lt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = super::schema::l1_l2_levels_relationships)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct L1L2LevelRelationship{
+    pub latest_l2_level:i32,
+    pub l1_level:i32
+}
+
+impl L1L2LevelRelationship{
+
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+        use super::schema::l1_l2_levels_relationships::dsl::*;
+        let inserted_rows=insert_into(l1_l2_levels_relationships)
+        .values(self)
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn get(connection:&mut SqliteConnection)->Result<(i32,i32),Error>{
+        use super::schema::l1_l2_levels_relationships::dsl::*;
+        let get=l1_l2_levels_relationships
+        .select((latest_l2_level,l1_level))
+        .order_by(latest_l2_level.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(get)
+    }
+
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::l1_l2_levels_relationships::dsl::*;
+        let cleared_rows=
+        delete(l1_l2_levels_relationships.filter(latest_l2_level.gt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::l1_l2_levels_relationships::dsl::*;
+        let cleared_rows=
+        delete(l1_l2_levels_relationships.filter(latest_l2_level.lt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+}
+
 
 
 // pub fn insert<T>(conn:&mut SqliteConnection,object:impl Insertable<T>,table:impl Table)->usize{

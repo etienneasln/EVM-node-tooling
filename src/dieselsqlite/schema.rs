@@ -17,8 +17,8 @@ diesel::table! {
     delayed_transactions (rowid) {
         rowid -> Integer,
         injected_before -> Integer,
-        hash -> Text,
-        payload -> Text,
+        hash -> Binary,
+        payload -> Binary,
     }
 }
 
@@ -50,7 +50,7 @@ diesel::table! {
 
 diesel::table! {
     l1_l2_levels_relationships (latest_l2_level) {
-        latest_l2_level -> Nullable<Binary>,
+        latest_l2_level -> Integer,
         l1_level -> Integer,
     }
 }
