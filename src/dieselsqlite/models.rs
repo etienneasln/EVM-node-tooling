@@ -1,6 +1,17 @@
-use diesel::{dsl::*, prelude::*, result::Error::*, sql_query, sql_types::Binary, upsert::excluded};
+use diesel::{dsl::*, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded, Table};
 
+pub trait EVMNodeInsertable<T>:Insertable<T> where T:Table{
 
+    
+    fn table()->T;
+
+    fn insert(&self,connection:&mut SqliteConnection)->QueryResult<usize> where Self:Sized{
+        let inserted_rows=
+        self.insert_into(Self::table())
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+}
 
 
 #[derive(Queryable, Selectable,Insertable)]
