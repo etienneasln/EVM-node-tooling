@@ -1,4 +1,7 @@
-use diesel::{dsl::{count, delete}, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded};
+use diesel::{dsl::*, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded};
+
+use crate::dieselsqlite::schema::{kernel_upgrades, sequencer_upgrades};
+
 
 
 #[derive(Queryable, Selectable,Insertable)]
@@ -26,7 +29,7 @@ impl Blueprint{
 
     pub fn insert(self,connection:&mut SqliteConnection)->Result<usize, Error>{
         use super::schema::blueprints::dsl::*;
-        let inserted_rows=diesel::insert_into(blueprints)
+        let inserted_rows=insert_into(blueprints)
         .values(&self)
         .execute(connection)?;
         Ok(inserted_rows)
@@ -111,7 +114,7 @@ impl Block {
 
     pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::blocks::dsl::*;
-        let inserted_rows=diesel::insert_into(blocks)
+        let inserted_rows=insert_into(blocks)
         .values(&self)
         .execute(connection)?;
         Ok(inserted_rows)
@@ -224,7 +227,7 @@ impl PendingConfirmation{
     pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::pending_confirmations::dsl::*;
         let inserted_rows=
-        diesel::insert_into(pending_confirmations)
+        insert_into(pending_confirmations)
         .values(&self)
         .execute(connection)?;
         Ok(inserted_rows)
@@ -282,7 +285,7 @@ impl Transaction{
     pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::transactions::dsl::*;
         let inserted_rows=
-        diesel::insert_into(transactions)
+        insert_into(transactions)
         .values(&self)
         .execute(connection)?;
         Ok(inserted_rows)
@@ -372,7 +375,7 @@ impl ContextHash{
     pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
         use super::schema::context_hashes::dsl::*;
         let inserted_rows=
-        diesel::insert_into(context_hashes)
+        replace_into(context_hashes)
         .values(&self)
         .execute(connection)?;
         Ok(inserted_rows)
@@ -405,7 +408,7 @@ impl ContextHash{
         context_hashes
         .filter(id.ge(0))
         .select((id,context_hash))
-        .order(id.desc())
+        .order(id.asc())
         .limit(1)
         .get_result(connection)?;
         Ok(earliest_context)
@@ -439,39 +442,31 @@ pub struct Metadata{
 }
 
 impl Metadata {
+    
     pub fn insert_smart_rollup_address(connection:&mut SqliteConnection,inserted_value:&str) -> Result<usize,Error>{
-        use super::schema::metadata::dsl::*;
-        let metadata_object=Metadata{
-            key:"smart_rollup_address".to_string(),
-            value:inserted_value.to_string()
-        };
-        let inserted_rows=
-        diesel::insert_into(metadata)
-        .values(metadata_object)
-        .on_conflict(key)
-        .do_update()
-        .set(value.eq(excluded(value)))
-        .execute(connection)?;
-        Ok(inserted_rows)
+        Metadata::insert_key_value(connection,"smart_rollup_address",inserted_value)
     }
 
     pub fn get_smart_rollup_address(connection:&mut SqliteConnection)->Result<String,Error>{
-        use super::schema::metadata::dsl::*;
-        let address=
-        metadata
-        .find("smart_rollup_address")
-        .select(value)
-        .get_result(connection)?;
-        Ok(address)
+        Metadata::get_value(connection, "smart_rollup_address")
     }
 
     pub fn insert_history_mode(connection:&mut SqliteConnection,inserted_value:&str) -> Result<usize,Error>{
+        Metadata::insert_key_value(connection, "history_mode", inserted_value)
+    }
+
+    pub fn get_history_mode(connection:&mut SqliteConnection)->Result<String,Error>{
+       Metadata::get_value(connection, "history_mode")
+    }
+
+    fn insert_key_value(connection:&mut SqliteConnection,inserted_key:&str,inserted_value:&str)->Result<usize, Error>{
         use super::schema::metadata::dsl::*;
         let metadata_object=Metadata{
-            key:"history_mode".to_string(),
+            key:inserted_key.to_string(),
             value:inserted_value.to_string()
         };
-        let inserted_rows=diesel::insert_into(metadata)
+        let inserted_rows=
+        insert_into(metadata)
         .values(metadata_object)
         .on_conflict(key)
         .do_update()
@@ -480,21 +475,234 @@ impl Metadata {
         Ok(inserted_rows)
     }
 
-    pub fn get_history_mode(connection:&mut SqliteConnection)->Result<String,Error>{
+    fn get_value(connection:&mut SqliteConnection,queried_key:&str)->Result<String,Error>{
         use super::schema::metadata::dsl::*;
-        let history_mode=
+        let returned_value=
         metadata
-        .find("history_mode")
+        .find(queried_key)
         .select(value)
         .get_result(connection)?;
-        Ok(history_mode)
+        Ok(returned_value)
     }
+}
+
+//TODO: Check if root_hash should be Vec<u8> for serialization
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = super::schema::kernel_upgrades)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct KernelUpgrade{
+    pub injected_before:i32,
+    pub root_hash:String,
+    pub activation_timestamp:i32,
+    pub applied_before:Option<i32>
+}
+
+impl KernelUpgrade{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize, Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let inserted_rows=
+        replace_into(kernel_upgrades)
+        .values((injected_before.eq(self.injected_before),
+                        root_hash.eq(self.root_hash),
+                        activation_timestamp.eq(self.activation_timestamp)
+                        )
+        )
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn activation_levels(connection:&mut SqliteConnection)->Result<Vec<i32>, Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let activation_levels=
+        kernel_upgrades
+        .filter(applied_before.is_not_null())
+        .select(applied_before.assume_not_null())
+        .order_by(applied_before.desc())
+        .load(connection)?;
+        Ok(activation_levels)
+    }
+
+    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->Result<(i32,String,i32),Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let latest_unapplied=
+        kernel_upgrades
+        .filter(applied_before.is_null())
+        .select((injected_before,root_hash,activation_timestamp))
+        .order_by(injected_before.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(latest_unapplied)
+    }
+
+    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->Result<(String,i32),Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let result=
+        kernel_upgrades
+        .filter(injected_before.eq(queried_level))
+        .select((root_hash, activation_timestamp))
+        .get_result(connection)?;
+        Ok(result)
+    }
+
+    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->Result<(String,i32),Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let latest_injected_after=
+        kernel_upgrades
+        .filter(injected_before.gt(queried_level))
+        .select((root_hash,activation_timestamp))
+        .order_by(injected_before.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(latest_injected_after)
+    }
+
+    pub fn record_apply(connection:&mut SqliteConnection, level:i32)->Result<usize,Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let updated_rows=
+        update(kernel_upgrades.filter(applied_before.is_null()))
+        .set(applied_before.eq(level))
+        .execute(connection)?;
+        Ok(updated_rows)
+    }
+
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let cleared_rows=
+        delete(kernel_upgrades.filter(injected_before.gt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn nullify_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let nullified_rows=
+        update(kernel_upgrades.filter(applied_before.gt(queried_level)))
+        .set(applied_before.eq::<Option<i32>>(None))
+        .execute(connection)?;
+        Ok(nullified_rows)
+    }
+
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::kernel_upgrades::dsl::*;
+        let cleared_rows=
+        delete(kernel_upgrades.filter(injected_before.lt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+}
+
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = super::schema::sequencer_upgrades)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct SequencerUpgrade{
+    pub injected_before:i32,
+    pub sequencer:String,
+    pub pool_address:String,
+    pub activation_timestamp:i32,
+    pub applied_before:Option<i32>
+}
+
+impl SequencerUpgrade{
+    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let inserted_rows=
+        replace_into(sequencer_upgrades)
+        .values((injected_before.eq(self.injected_before),
+                        sequencer.eq(self.sequencer),
+                        pool_address.eq(self.pool_address),
+                        activation_timestamp.eq(self.activation_timestamp)
+                        )
+        )
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn activation_levels(connection:&mut SqliteConnection)->Result<Vec<i32>, Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let activation_levels=
+        sequencer_upgrades
+        .filter(applied_before.is_not_null())
+        .select(applied_before.assume_not_null())
+        .order_by(applied_before.desc())
+        .load(connection)?;
+        Ok(activation_levels)
+    }
+
+    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->Result<(i32,String,String,i32),Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let latest_unapplied=
+        sequencer_upgrades
+        .filter(applied_before.is_null())
+        .select((injected_before,sequencer,pool_address,activation_timestamp))
+        .order_by(injected_before.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(latest_unapplied)
+    }
+
+    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->Result<(String,String,i32),Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let result=
+        sequencer_upgrades
+        .filter(injected_before.eq(queried_level))
+        .select((sequencer, pool_address, activation_timestamp))
+        .get_result(connection)?;
+        Ok(result)
+    }
+
+    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->Result<(String,String,i32),Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let latest_injected_after=
+        sequencer_upgrades
+        .filter(injected_before.gt(queried_level))
+        .select((sequencer,pool_address,activation_timestamp))
+        .order_by(injected_before.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(latest_injected_after)
+    }
+
+    pub fn record_apply(connection:&mut SqliteConnection, level:i32)->Result<usize,Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let updated_rows=
+        update(sequencer_upgrades.filter(applied_before.is_null()))
+        .set(applied_before.eq(level))
+        .execute(connection)?;
+        Ok(updated_rows)
+    }
+
+
+     pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let cleared_rows=
+        delete(sequencer_upgrades.filter(injected_before.gt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn nullify_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let nullified_rows=
+        update(sequencer_upgrades.filter(applied_before.gt(queried_level)))
+        .set(applied_before.eq::<Option<i32>>(None))
+        .execute(connection)?;
+        Ok(nullified_rows)
+    }
+
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+        use super::schema::sequencer_upgrades::dsl::*;
+        let cleared_rows=
+        delete(sequencer_upgrades.filter(injected_before.lt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
 
 }
 
 
 // pub fn insert<T>(conn:&mut SqliteConnection,object:impl Insertable<T>,table:impl Table)->usize{
-//     diesel::insert_into(table)
+//     insert_into(table)
 //         .values(&object)
 //         .execute(conn)
 //         .unwrap_or_else(|e| panic!("Error inserting object:{}",e))

@@ -1,4 +1,5 @@
-use evmnodetooling::dieselsqlite::{establish_connection, models::*};
+use diesel::{debug_query, dsl::*, sqlite::Sqlite, ExpressionMethods};
+use evmnodetooling::dieselsqlite::{establish_connection, models::*, schema::kernel_upgrades::dsl::*};
 
 fn main(){
     let connection=&mut establish_connection();
@@ -84,6 +85,29 @@ fn main(){
     assert_eq!(to_,vec_to_);
     assert_eq!(receipt_fields,vec_receipt_fields);
     assert_eq!(object_fields,vec_object_fields);
+
+    
+    let kernel_upgrade=KernelUpgrade{
+        injected_before:1000,
+        root_hash:"hash".to_string(),
+        activation_timestamp:2000,
+        applied_before:Some(1004)
+    };
+
+    let binding = replace_into(kernel_upgrades)
+    .values((injected_before.eq(kernel_upgrade.injected_before),
+                        root_hash.eq(kernel_upgrade.root_hash.clone()),
+                        activation_timestamp.eq(kernel_upgrade.activation_timestamp)
+                        ));
+    let sql=debug_query::<Sqlite,_>(&binding);
+    println!("SQL:{:?}",sql);
+
+    let _ = kernel_upgrade.insert(connection).unwrap();
+    let _=KernelUpgrade::nullify_after(connection, 1003);
+    let latest_unapplied=KernelUpgrade::get_latest_unapplied(connection).unwrap();
+    println!("Latest unapplied:{:?}",latest_unapplied);
+    let _=KernelUpgrade::clear_after(connection,999);
+    
 
 
 

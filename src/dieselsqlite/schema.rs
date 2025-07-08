@@ -62,6 +62,17 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    sequencer_upgrades (rowid) {
+        rowid -> Integer,
+        injected_before -> Integer,
+        sequencer -> Text,
+        pool_address -> Text,
+        activation_timestamp -> Integer,
+        applied_before -> Nullable<Integer>,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     block_storage_mode,
     delayed_transactions,
@@ -69,6 +80,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     kernel_upgrades,
     l1_l2_finalized_levels,
     metadata,
+    sequencer_upgrades,
 );
 
 //WRITTEN MANUALLY
