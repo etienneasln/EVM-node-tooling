@@ -14,36 +14,36 @@ pub fn load_database_url()->String{
 pub fn establish_connection(path:Option<&str>) -> Result<SqliteConnection, ConnectionError> {
     let database_url=
     match path{
-        None=>load_database_url(),
-        Some(p)=>p.to_string()
+        None=>&load_database_url(),
+        Some(p)=>p
     };
     
-    SqliteConnection::establish(&database_url)
+    SqliteConnection::establish(database_url)
 }
 
-pub fn set_journal_mode_to_wal(conn:&mut SqliteConnection)->usize{
+pub fn set_journal_mode_to_wal(conn:&mut SqliteConnection)->QueryResult<usize>{
     diesel::sql_query("PRAGMA journal_mode=WAL;")
     .execute(conn)
-    .unwrap_or_else(|_| panic!("Error changing journal mode to WAL"))
+    
 }
 
-pub fn set_synchronous_mode_to_full(conn:&mut SqliteConnection)->usize{
+pub fn set_synchronous_mode_to_full(conn:&mut SqliteConnection)->QueryResult<usize>{
     diesel::sql_query("PRAGMA synchronous = FULL;")
     .execute(conn)
-    .unwrap_or_else(|_| panic!("Error changing synchronous mode to FULL"))
+    
 }
 
-pub fn set_synchronous_mode_to_normal(conn:&mut SqliteConnection)->usize{
+pub fn set_synchronous_mode_to_normal(conn:&mut SqliteConnection)->QueryResult<usize>{
     diesel::sql_query("PRAGMA synchronous = NORMAL;")
     .execute(conn)
-    .unwrap_or_else(|_| panic!("Error changing synchronous mode to NORMAL"))
+    
 }
 
 //For benchmarking purposes
-pub fn rusqlite_connection()->RusqliteConnection{
+pub fn rusqlite_connection()->Result<RusqliteConnection, rusqlite::Error>{
     let database_url=load_database_url();
     
-    RusqliteConnection::open(&database_url).unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+    RusqliteConnection::open(&database_url)
 }
 
 pub const CREATE_TABLE_BLUEPRINTS_QUERY:&str="CREATE TABLE blueprints (

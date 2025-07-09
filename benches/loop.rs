@@ -19,7 +19,7 @@ const THIRD_APPLY_BLUEPRINT_TEST:i32=20233750;//Grafana trace id:71651d8a3b65638
 
 fn criterion_insert_blueprint(c:&mut Criterion){
     let database_url=load_database_url();
-    let rusqliteconnection=rusqlite_connection();
+    let rusqliteconnection=rusqlite_connection().unwrap();
     let dieselconnection=&mut establish_connection(None).unwrap();
 
     let mut id=INSERT_INDEX;
@@ -39,8 +39,8 @@ fn criterion_insert_blueprint(c:&mut Criterion){
 
         let _ = diesel::sql_query(CREATE_TABLE_BLUEPRINTS_QUERY).execute(dieselconnection);
     }else{
-        set_journal_mode_to_wal(dieselconnection);
-        set_synchronous_mode_to_full(dieselconnection);
+        set_journal_mode_to_wal(dieselconnection).unwrap();
+        set_synchronous_mode_to_full(dieselconnection).unwrap();
         
         let _=Blueprint::clear_after(dieselconnection, id-1);
     }
@@ -82,7 +82,7 @@ fn run_insert_blueprint_rusqlite(connection:&Connection,id:&mut i32,payload:&Vec
 
 fn criterion_insert_then_clear_blueprint(c:&mut Criterion){
     let database_url=load_database_url();
-    let rusqliteconnection=rusqlite_connection();
+    let rusqliteconnection=rusqlite_connection().unwrap();
     let dieselconnection=&mut establish_connection(None).unwrap();
 
     let id=INSERT_INDEX;
@@ -102,8 +102,8 @@ fn criterion_insert_then_clear_blueprint(c:&mut Criterion){
 
         let _ = diesel::sql_query(CREATE_TABLE_BLUEPRINTS_QUERY).execute(dieselconnection);
     }else{
-        set_journal_mode_to_wal(dieselconnection);
-        set_synchronous_mode_to_full(dieselconnection);
+        set_journal_mode_to_wal(dieselconnection).unwrap();
+        set_synchronous_mode_to_full(dieselconnection).unwrap();
         
         let _=Blueprint::clear_after(dieselconnection, id-1);
     }
@@ -143,7 +143,7 @@ fn run_insert_then_clear_blueprint_rusqlite(connection:&Connection,id:i32,payloa
 
 fn criterion_insert_then_clear_block(c:&mut Criterion){
     let database_url=load_database_url();
-    let rusqliteconnection=rusqlite_connection();
+    let rusqliteconnection=rusqlite_connection().unwrap();
     let dieselconnection=&mut establish_connection(None).unwrap();
 
     let id=INSERT_INDEX;
@@ -164,8 +164,8 @@ fn criterion_insert_then_clear_block(c:&mut Criterion){
 
         let _ = diesel::sql_query(CREATE_TABLE_BLOCKS_QUERY).execute(dieselconnection);
     }else{
-        set_journal_mode_to_wal(dieselconnection);
-        set_synchronous_mode_to_full(dieselconnection);
+        set_journal_mode_to_wal(dieselconnection).unwrap();
+        set_synchronous_mode_to_full(dieselconnection).unwrap();
         
         let _=Block::clear_after(dieselconnection, id-1);
     }
