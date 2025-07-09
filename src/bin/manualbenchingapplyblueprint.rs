@@ -6,7 +6,7 @@ use evmnodetooling::dieselsqlite::{*,models::*};
 fn main(){
     let database_url=load_database_url();
     if database_url!=":memory:"{
-        let connection=&mut establish_connection();
+        let connection=&mut establish_connection(None).unwrap();
         let select_index=20233999;
         let clear_index=Blueprint::top_level(connection).unwrap();
         let insert_index= clear_index+1;

@@ -1,6 +1,6 @@
 use std::fmt::{self, Display, Formatter};
 use actix_web::{Result,error, http::{header::ContentType, StatusCode}, post, web, App, HttpResponse, HttpServer, Responder};
-use diesel::result::Error as dieselError;
+use diesel::{result::Error as dieselError, ConnectionError};
 use evmnodetooling::dieselsqlite::{*,models::*};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Error as jsonError;
@@ -83,7 +83,8 @@ enum SqlResponse{
 
 #[derive(Debug)]
 enum ServerError{
-    InternalError{error:dieselError},
+    InternalDatabaseError{error:dieselError},
+    ConnectionError{error:ConnectionError},
     UnknownMethod{method_name:String},
     BadParameterFormat{error:jsonError}
 }
@@ -97,7 +98,8 @@ impl error::ResponseError for ServerError{
 
     fn status_code(&self) -> StatusCode {
         match *self {
-            ServerError::InternalError{ error: _ } => StatusCode::INTERNAL_SERVER_ERROR,
+            ServerError::InternalDatabaseError{ error: _ } => StatusCode::INTERNAL_SERVER_ERROR,
+            ServerError::ConnectionError { error:_ }=>StatusCode::NOT_FOUND,
             ServerError::UnknownMethod{method_name:_} => StatusCode::BAD_REQUEST,
             ServerError::BadParameterFormat{error:_}=> StatusCode::BAD_REQUEST
         }
@@ -107,7 +109,8 @@ impl error::ResponseError for ServerError{
 impl Display for ServerError{
     fn fmt(&self, f:&mut Formatter)->fmt::Result{
         let string=match self{
-            ServerError::InternalError { error } => format!("Internal database error:{}",error),
+            ServerError::InternalDatabaseError { error } => format!("Internal database error:{}",error),
+            ServerError::ConnectionError { error }=>format!("Error connecting to the database:{}",error),
             ServerError::UnknownMethod { method_name }=>format!("Unknow method:{}",method_name),
             ServerError::BadParameterFormat { error }=>format!("Invalid parameters:{}",error),
         };
@@ -125,9 +128,16 @@ impl From<jsonError> for ServerError{
 
 impl From<dieselError> for ServerError{
     fn from(error:dieselError)->ServerError{
-        ServerError::InternalError{error}
+        ServerError::InternalDatabaseError{error}
     }
 }
+
+impl From<ConnectionError> for ServerError{
+    fn from(error:ConnectionError)->ServerError{
+        ServerError::ConnectionError {error}
+    }
+}
+
 
 fn extract_parameter<T>(param:&serde_json::Value)->Result<T,jsonError> where T:DeserializeOwned{
     serde_json::from_value(param.clone())
@@ -141,7 +151,7 @@ fn extract_parameter<T>(param:&serde_json::Value)->Result<T,jsonError> where T:D
 
 #[post("/")]
 async fn answer_query(query: web::Json<Sqlquery>) -> Result<impl Responder,ServerError>{
-    let connection=&mut establish_connection();
+    let connection=&mut establish_connection(None)?;
     let method_requested=query.name.as_str();
     let response=match  method_requested{
             

@@ -2,7 +2,7 @@ use diesel::{debug_query, dsl::*, sqlite::Sqlite, ExpressionMethods};
 use evmnodetooling::dieselsqlite::{establish_connection, models::*, schema::kernel_upgrades::dsl::*};
 
 fn main(){
-    let connection=&mut establish_connection();
+    let connection=&mut establish_connection(None).unwrap();
 
     let base_level=Block::base_level(connection).unwrap();
     let top_level=Block::top_level(connection).unwrap();

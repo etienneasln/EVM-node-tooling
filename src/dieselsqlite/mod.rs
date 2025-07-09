@@ -11,11 +11,14 @@ pub fn load_database_url()->String{
     env::var("DATABASE_URL").expect("DATABASE_URL must be set")
 }
 
-pub fn establish_connection() -> SqliteConnection {
-    let database_url=load_database_url();
-
+pub fn establish_connection(path:Option<&str>) -> Result<SqliteConnection, ConnectionError> {
+    let database_url=
+    match path{
+        None=>load_database_url(),
+        Some(p)=>p.to_string()
+    };
+    
     SqliteConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
 pub fn set_journal_mode_to_wal(conn:&mut SqliteConnection)->usize{

@@ -6,7 +6,7 @@ use rusqlite::params;
 
 fn main(){
     let database_url=load_database_url();
-    let dieselconnection=&mut establish_connection();
+    let dieselconnection=&mut establish_connection(None).unwrap();
     let rusqliteconnection=rusqlite_connection();
 
     let id=18987875;
