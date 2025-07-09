@@ -1,9 +1,8 @@
 use diesel::{prelude::*};
 use dotenvy::dotenv;
 use rusqlite::Connection as RusqliteConnection;
-use std::{env::{self, VarError}};
+use std::env;
 
-use crate::dieselsqlite::models::Block;
 
 pub mod models;
 pub mod schema;
