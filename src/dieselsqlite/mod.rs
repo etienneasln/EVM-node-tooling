@@ -1,14 +1,24 @@
-use diesel::prelude::*;
+use diesel::{prelude::*};
 use dotenvy::dotenv;
 use rusqlite::Connection as RusqliteConnection;
-use std::env;
+use std::{env::{self, VarError}};
+
+use crate::dieselsqlite::models::Block;
 
 pub mod models;
 pub mod schema;
 
 pub fn load_database_url()->String{
     dotenv().ok();
-    env::var("DATABASE_URL").expect("DATABASE_URL must be set")
+    env::var("DATABASE_URL").unwrap_or_else(|_| "./store.sqlite".to_string())
+}
+
+pub fn load_block_number()->i32{
+    dotenv().ok();
+    env::var("BLOCK_NUMBER")
+    .map(|s| s.parse::<i32>())
+    .unwrap()
+    .unwrap()
 }
 
 pub fn establish_connection(path:Option<&str>) -> Result<SqliteConnection, ConnectionError> {
@@ -65,3 +75,4 @@ pub const CREATE_TABLE_BLOCKS_QUERY:&str="CREATE TABLE blocks (
 pub const INSERT_INTO_BLOCKS_QUERY:&str="INSERT INTO blocks (level,hash,block) VALUES (?1,?2,?3)";
 
 pub const CLEAR_AFTER_BLOCKS_QUERY:&str="DELETE FROM blocks WHERE level > ?1";
+
