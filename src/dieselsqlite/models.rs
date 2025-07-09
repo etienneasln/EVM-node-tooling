@@ -1,4 +1,4 @@
-use diesel::{dsl::*, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded};
+use diesel::{dsl::*, prelude::*, result::Error::*, sql_query, sql_types::Binary, upsert::excluded};
 
 
 
@@ -17,7 +17,7 @@ impl Blueprint{
 
     
     
-    pub fn select(connection:&mut SqliteConnection,queried_id:i32)->Result<(Vec<u8>,i32),Error>{
+    pub fn select(connection:&mut SqliteConnection,queried_id:i32)->QueryResult<(Vec<u8>,i32)>{
         use super::schema::blueprints::dsl::*;
         let tuple= blueprints
         .find(queried_id)
@@ -26,7 +26,7 @@ impl Blueprint{
         Ok(tuple)
     }
 
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize, Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::blueprints::dsl::*;
         let inserted_rows=insert_into(blueprints)
         .values(&self)
@@ -36,7 +36,7 @@ impl Blueprint{
     }
 
 
-    pub fn select_range(connection:&mut SqliteConnection,lowerlevel:i32,upperlevel:i32)->Result<Vec<(i32,Vec<u8>)>,Error>{
+    pub fn select_range(connection:&mut SqliteConnection,lowerlevel:i32,upperlevel:i32)->QueryResult<Vec<(i32,Vec<u8>)>>{
         use super::schema::blueprints::dsl::*;
 
         let vec=blueprints
@@ -47,7 +47,7 @@ impl Blueprint{
         Ok(vec)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,level:i32)->QueryResult<usize>{
         use super::schema::blueprints::dsl::*;
         let cleared_rows=delete(blueprints.filter(id.gt(level)))
         .execute(connection)?;
@@ -56,7 +56,7 @@ impl Blueprint{
         
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,level:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,level:i32)->QueryResult<usize>{
         use super::schema::blueprints::dsl::*;
         let cleared_rows=delete(blueprints.filter(id.lt(level)))
         .execute(connection)?;
@@ -64,7 +64,7 @@ impl Blueprint{
     }
     //For testing
 
-    pub fn count(connection:&mut SqliteConnection)->Result<i64,Error>{
+    pub fn count(connection:&mut SqliteConnection)->QueryResult<i64>{
         use super::schema::blueprints::dsl::*;
             
         let count=blueprints
@@ -73,7 +73,7 @@ impl Blueprint{
         Ok(count)
     }
 
-    pub fn base_level(connection:&mut SqliteConnection)->Result<i32,Error>{
+    pub fn base_level(connection:&mut SqliteConnection)->QueryResult<i32>{
         use super::schema::blueprints::dsl::*;
         let base_level=
         blueprints
@@ -84,7 +84,7 @@ impl Blueprint{
         Ok(base_level)
     }
 
-    pub fn top_level(connection:&mut SqliteConnection)->Result<i32,Error>{
+    pub fn top_level(connection:&mut SqliteConnection)->QueryResult<i32>{
         use super::schema::blueprints::dsl::*;
         let top_level=
         blueprints
@@ -111,7 +111,7 @@ pub struct Block {
 
 impl Block {
 
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::blocks::dsl::*;
         let inserted_rows=insert_into(blocks)
         .values(&self)
@@ -120,7 +120,7 @@ impl Block {
         
     }
 
-    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->Result<Vec<u8>,Error>{
+    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<Vec<u8>>{
         use super::schema::blocks::dsl::*;
         let b=
         blocks
@@ -131,7 +131,7 @@ impl Block {
     }
 
 
-    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<Vec<u8>,Error>{
+    pub fn select_with_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->QueryResult<Vec<u8>>{
         let b=
         sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
@@ -140,7 +140,7 @@ impl Block {
 
     }
 
-    pub fn select_hash_of_number(connection:&mut SqliteConnection,queried_level:i32)->Result<Vec<u8>,Error>{
+    pub fn select_hash_of_number(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<Vec<u8>>{
         use super::schema::blocks::dsl::*;
         let h=
         blocks
@@ -151,7 +151,7 @@ impl Block {
     }
 
 
-    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<i32,Error>{
+    pub fn select_number_of_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->QueryResult<i32>{
         let b=
         sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
@@ -161,7 +161,7 @@ impl Block {
 
     
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::blocks::dsl::*;
         let cleared_rows=
         delete(blocks.filter(level.gt(queried_level)))
@@ -169,7 +169,7 @@ impl Block {
         Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::blocks::dsl::*;
         let cleared_rows=
         delete(blocks.filter(level.lt(queried_level)))
@@ -179,7 +179,7 @@ impl Block {
 
     //For testing
 
-    pub fn count(connection:&mut SqliteConnection)->Result<i64,Error>{
+    pub fn count(connection:&mut SqliteConnection)->QueryResult<i64>{
         use super::schema::blocks::dsl::*;
 
         let count=  
@@ -189,7 +189,7 @@ impl Block {
         Ok(count)
     }
 
-    pub fn base_level(connection:&mut SqliteConnection)->Result<i32,Error>{
+    pub fn base_level(connection:&mut SqliteConnection)->QueryResult<i32>{
         use super::schema::blocks::dsl::*;
         let base_level=
         blocks
@@ -200,7 +200,7 @@ impl Block {
         Ok(base_level)
     }
 
-    pub fn top_level(connection:&mut SqliteConnection)->Result<i32,Error>{
+    pub fn top_level(connection:&mut SqliteConnection)->QueryResult<i32>{
         use super::schema::blocks::dsl::*;
         let base_level=
         blocks
@@ -223,7 +223,7 @@ pub struct PendingConfirmation{
 }
 
 impl PendingConfirmation{
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::pending_confirmations::dsl::*;
         let inserted_rows=
         insert_into(pending_confirmations)
@@ -232,7 +232,7 @@ impl PendingConfirmation{
         Ok(inserted_rows)
     }
 
-    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->Result<Vec<u8>,Error>{
+    pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<Vec<u8>>{
         use super::schema::pending_confirmations::dsl::*;
         let h=pending_confirmations
         .find(queried_level)
@@ -241,7 +241,7 @@ impl PendingConfirmation{
         Ok(h)
     }
 
-    pub fn delete_with_level(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn delete_with_level(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::pending_confirmations::dsl::*;
         let deleted_rows=
         delete(pending_confirmations.filter(level.eq(queried_level)))
@@ -249,14 +249,14 @@ impl PendingConfirmation{
         Ok(deleted_rows)
     }
 
-    pub fn clear(connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn clear(connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::pending_confirmations::dsl::*;
         let deleted_rows=delete(pending_confirmations)
         .execute(connection)?;
         Ok(deleted_rows)
     }
 
-    pub fn count(connection:&mut SqliteConnection)->Result<i64,Error>{
+    pub fn count(connection:&mut SqliteConnection)->QueryResult<i64>{
         use super::schema::pending_confirmations::dsl::*;
         let count=pending_confirmations
         .select(count(level))
@@ -281,7 +281,7 @@ pub struct Transaction{
 }
 
 impl Transaction{
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::transactions::dsl::*;
         let inserted_rows=
         insert_into(transactions)
@@ -290,7 +290,7 @@ impl Transaction{
         Ok(inserted_rows)
     }
 
-    pub fn select_receipt(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>),Error>{
+    pub fn select_receipt(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->QueryResult<(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>{
         let receipt=sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
         .get_result::<Transaction>(connection)?;
@@ -304,7 +304,7 @@ impl Transaction{
         
     }
 
-    pub fn select_receipts_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Result<Vec<(Vec<u8>,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>,Error>{
+    pub fn select_receipts_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->QueryResult<Vec<(Vec<u8>,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>>{
         use super::schema::transactions::dsl::*;
         let receipts=
         transactions
@@ -319,7 +319,7 @@ impl Transaction{
         Ok(receipts)
     }
 
-    pub fn select_object(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>),Error>{
+    pub fn select_object(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->QueryResult<(Vec<u8>,i32,i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>{
         let object=sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
         .get_result::<Transaction>(connection)?;
@@ -332,7 +332,7 @@ impl Transaction{
         object.object_fields))
     }
     
-    pub fn select_objects_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->Result<Vec<(i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>,Error>{
+    pub fn select_objects_from_block_number(connection:&mut SqliteConnection,queried_block_number:i32)->QueryResult<Vec<(i32,Vec<u8>,Vec<u8>,Option<Vec<u8>>,Vec<u8>)>>{
         use super::schema::transactions::dsl::*;
         let objects=transactions
         .filter(block_number.eq(queried_block_number))
@@ -345,7 +345,7 @@ impl Transaction{
         Ok(objects)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_block_number:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_block_number:i32)->QueryResult<usize>{
         use super::schema::transactions::dsl::*;
         let cleared_rows=
         delete(transactions.filter(block_number.gt(queried_block_number)))
@@ -353,7 +353,7 @@ impl Transaction{
         Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_block_number:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_block_number:i32)->QueryResult<usize>{
         use super::schema::transactions::dsl::*;
         let cleared_rows=
         delete(transactions.filter(block_number.lt(queried_block_number)))
@@ -371,7 +371,7 @@ pub struct ContextHash{
 }
 
 impl ContextHash{
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::context_hashes::dsl::*;
         let inserted_rows=
         replace_into(context_hashes)
@@ -380,7 +380,7 @@ impl ContextHash{
         Ok(inserted_rows)
     }
 
-    pub fn select(connection:&mut SqliteConnection, queried_id:i32)->Result<Vec<u8>,Error>{
+    pub fn select(connection:&mut SqliteConnection, queried_id:i32)->QueryResult<Vec<u8>>{
         use super::schema::context_hashes::dsl::*;
         let hash=
         context_hashes
@@ -390,7 +390,7 @@ impl ContextHash{
         Ok(hash)
     }
 
-    pub fn get_latest(connection:&mut SqliteConnection)->Result<(i32,Vec<u8>),Error>{
+    pub fn get_latest(connection:&mut SqliteConnection)->QueryResult<(i32,Vec<u8>)>{
         use super::schema::context_hashes::dsl::*;
         let latest_context=
         context_hashes
@@ -401,7 +401,7 @@ impl ContextHash{
         Ok(latest_context)
     }
 
-    pub fn get_earliest(connection:&mut SqliteConnection)->Result<(i32,Vec<u8>),Error>{
+    pub fn get_earliest(connection:&mut SqliteConnection)->QueryResult<(i32,Vec<u8>)>{
         use super::schema::context_hashes::dsl::*;
         let earliest_context=
         context_hashes
@@ -413,7 +413,7 @@ impl ContextHash{
         Ok(earliest_context)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_id:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_id:i32)->QueryResult<usize>{
         use super::schema::context_hashes::dsl::*;
         let cleared_rows=
         delete(context_hashes.filter(id.gt(queried_id)))
@@ -421,7 +421,7 @@ impl ContextHash{
         Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_id:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_id:i32)->QueryResult<usize>{
         use super::schema::context_hashes::dsl::*;
         let cleared_rows=delete(context_hashes.filter(id.lt(queried_id)))
         .execute(connection)?;
@@ -442,23 +442,23 @@ pub struct Metadata{
 
 impl Metadata {
     
-    pub fn insert_smart_rollup_address(connection:&mut SqliteConnection,inserted_value:&str) -> Result<usize,Error>{
+    pub fn insert_smart_rollup_address(connection:&mut SqliteConnection,inserted_value:&str) -> QueryResult<usize>{
         Metadata::insert_key_value(connection,"smart_rollup_address",inserted_value)
     }
 
-    pub fn get_smart_rollup_address(connection:&mut SqliteConnection)->Result<String,Error>{
+    pub fn get_smart_rollup_address(connection:&mut SqliteConnection)->QueryResult<String>{
         Metadata::get_value(connection, "smart_rollup_address")
     }
 
-    pub fn insert_history_mode(connection:&mut SqliteConnection,inserted_value:&str) -> Result<usize,Error>{
+    pub fn insert_history_mode(connection:&mut SqliteConnection,inserted_value:&str) -> QueryResult<usize>{
         Metadata::insert_key_value(connection, "history_mode", inserted_value)
     }
 
-    pub fn get_history_mode(connection:&mut SqliteConnection)->Result<String,Error>{
+    pub fn get_history_mode(connection:&mut SqliteConnection)->QueryResult<String>{
        Metadata::get_value(connection, "history_mode")
     }
 
-    fn insert_key_value(connection:&mut SqliteConnection,inserted_key:&str,inserted_value:&str)->Result<usize, Error>{
+    fn insert_key_value(connection:&mut SqliteConnection,inserted_key:&str,inserted_value:&str)->QueryResult<usize>{
         use super::schema::metadata::dsl::*;
         let metadata_object=Metadata{
             key:inserted_key.to_string(),
@@ -474,7 +474,7 @@ impl Metadata {
         Ok(inserted_rows)
     }
 
-    fn get_value(connection:&mut SqliteConnection,queried_key:&str)->Result<String,Error>{
+    fn get_value(connection:&mut SqliteConnection,queried_key:&str)->QueryResult<String>{
         use super::schema::metadata::dsl::*;
         let returned_value=
         metadata
@@ -497,7 +497,7 @@ pub struct KernelUpgrade{
 }
 
 impl KernelUpgrade{
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize, Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::kernel_upgrades::dsl::*;
         let inserted_rows=
         replace_into(kernel_upgrades)
@@ -510,7 +510,7 @@ impl KernelUpgrade{
         Ok(inserted_rows)
     }
 
-    pub fn activation_levels(connection:&mut SqliteConnection)->Result<Vec<i32>, Error>{
+    pub fn activation_levels(connection:&mut SqliteConnection)->QueryResult<Vec<i32>>{
         use super::schema::kernel_upgrades::dsl::*;
         let activation_levels=
         kernel_upgrades
@@ -521,7 +521,7 @@ impl KernelUpgrade{
         Ok(activation_levels)
     }
 
-    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->Result<(i32,String,i32),Error>{
+    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->QueryResult<(i32,String,i32)>{
         use super::schema::kernel_upgrades::dsl::*;
         let latest_unapplied=
         kernel_upgrades
@@ -533,7 +533,7 @@ impl KernelUpgrade{
         Ok(latest_unapplied)
     }
 
-    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->Result<(String,i32),Error>{
+    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<(String,i32)>{
         use super::schema::kernel_upgrades::dsl::*;
         let result=
         kernel_upgrades
@@ -543,7 +543,7 @@ impl KernelUpgrade{
         Ok(result)
     }
 
-    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->Result<(String,i32),Error>{
+    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->QueryResult<(String,i32)>{
         use super::schema::kernel_upgrades::dsl::*;
         let latest_injected_after=
         kernel_upgrades
@@ -555,7 +555,7 @@ impl KernelUpgrade{
         Ok(latest_injected_after)
     }
 
-    pub fn record_apply(connection:&mut SqliteConnection, level:i32)->Result<usize,Error>{
+    pub fn record_apply(connection:&mut SqliteConnection, level:i32)->QueryResult<usize>{
         use super::schema::kernel_upgrades::dsl::*;
         let updated_rows=
         update(kernel_upgrades.filter(applied_before.is_null()))
@@ -564,7 +564,7 @@ impl KernelUpgrade{
         Ok(updated_rows)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::kernel_upgrades::dsl::*;
         let cleared_rows=
         delete(kernel_upgrades.filter(injected_before.gt(queried_level)))
@@ -572,7 +572,7 @@ impl KernelUpgrade{
         Ok(cleared_rows)
     }
 
-    pub fn nullify_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn nullify_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::kernel_upgrades::dsl::*;
         let nullified_rows=
         update(kernel_upgrades.filter(applied_before.gt(queried_level)))
@@ -581,7 +581,7 @@ impl KernelUpgrade{
         Ok(nullified_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::kernel_upgrades::dsl::*;
         let cleared_rows=
         delete(kernel_upgrades.filter(injected_before.lt(queried_level)))
@@ -602,7 +602,7 @@ pub struct SequencerUpgrade{
 }
 
 impl SequencerUpgrade{
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::sequencer_upgrades::dsl::*;
         let inserted_rows=
         replace_into(sequencer_upgrades)
@@ -616,7 +616,7 @@ impl SequencerUpgrade{
         Ok(inserted_rows)
     }
 
-    pub fn activation_levels(connection:&mut SqliteConnection)->Result<Vec<i32>, Error>{
+    pub fn activation_levels(connection:&mut SqliteConnection)->QueryResult<Vec<i32>>{
         use super::schema::sequencer_upgrades::dsl::*;
         let activation_levels=
         sequencer_upgrades
@@ -627,7 +627,7 @@ impl SequencerUpgrade{
         Ok(activation_levels)
     }
 
-    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->Result<(i32,String,String,i32),Error>{
+    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->QueryResult<(i32,String,String,i32)>{
         use super::schema::sequencer_upgrades::dsl::*;
         let latest_unapplied=
         sequencer_upgrades
@@ -639,7 +639,7 @@ impl SequencerUpgrade{
         Ok(latest_unapplied)
     }
 
-    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->Result<(String,String,i32),Error>{
+    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<(String,String,i32)>{
         use super::schema::sequencer_upgrades::dsl::*;
         let result=
         sequencer_upgrades
@@ -649,7 +649,7 @@ impl SequencerUpgrade{
         Ok(result)
     }
 
-    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->Result<(String,String,i32),Error>{
+    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->QueryResult<(String,String,i32)>{
         use super::schema::sequencer_upgrades::dsl::*;
         let latest_injected_after=
         sequencer_upgrades
@@ -661,7 +661,7 @@ impl SequencerUpgrade{
         Ok(latest_injected_after)
     }
 
-    pub fn record_apply(connection:&mut SqliteConnection, level:i32)->Result<usize,Error>{
+    pub fn record_apply(connection:&mut SqliteConnection, level:i32)->QueryResult<usize>{
         use super::schema::sequencer_upgrades::dsl::*;
         let updated_rows=
         update(sequencer_upgrades.filter(applied_before.is_null()))
@@ -671,7 +671,7 @@ impl SequencerUpgrade{
     }
 
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::sequencer_upgrades::dsl::*;
         let cleared_rows=
         delete(sequencer_upgrades.filter(injected_before.gt(queried_level)))
@@ -679,7 +679,7 @@ impl SequencerUpgrade{
         Ok(cleared_rows)
     }
 
-    pub fn nullify_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn nullify_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::sequencer_upgrades::dsl::*;
         let nullified_rows=
         update(sequencer_upgrades.filter(applied_before.gt(queried_level)))
@@ -688,7 +688,7 @@ impl SequencerUpgrade{
         Ok(nullified_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::sequencer_upgrades::dsl::*;
         let cleared_rows=
         delete(sequencer_upgrades.filter(injected_before.lt(queried_level)))
@@ -708,7 +708,7 @@ pub struct DelayedTransaction{
 }
 
 impl DelayedTransaction{
-    pub fn insert(self, connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self, connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::delayed_transactions::dsl::*;
         let inserted_rows=
         insert_into(delayed_transactions)
@@ -717,7 +717,7 @@ impl DelayedTransaction{
         Ok(inserted_rows)
     }
 
-    pub fn select_at_level(connection:&mut SqliteConnection,queried_injected_before:i32)->Result<Vec<u8>,Error>{
+    pub fn select_at_level(connection:&mut SqliteConnection,queried_injected_before:i32)->QueryResult<Vec<u8>>{
         use super::schema::delayed_transactions::dsl::*;
         let p=
         delayed_transactions
@@ -727,7 +727,7 @@ impl DelayedTransaction{
         Ok(p)
     }
 
-    pub fn select_at_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->Result<Vec<u8>,Error>{
+    pub fn select_at_hash(connection:&mut SqliteConnection,queried_hash:&Vec<u8>)->QueryResult<Vec<u8>>{
         let dt=
         sql_query("SELECT * FROM delayed_transactions WHERE CAST(hash as BLOB)=?1")
         .bind::<Binary,_>(queried_hash)
@@ -735,7 +735,7 @@ impl DelayedTransaction{
         Ok(dt.payload)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::delayed_transactions::dsl::*;
         let cleared_rows=
         delete(delayed_transactions.filter(injected_before.gt(queried_level)))
@@ -743,7 +743,7 @@ impl DelayedTransaction{
         Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::delayed_transactions::dsl::*;
         let cleared_rows=
         delete(delayed_transactions.filter(injected_before.lt(queried_level)))
@@ -762,7 +762,7 @@ pub struct L1L2LevelRelationship{
 
 impl L1L2LevelRelationship{
 
-    pub fn insert(self,connection:&mut SqliteConnection)->Result<usize,Error>{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::l1_l2_levels_relationships::dsl::*;
         let inserted_rows=insert_into(l1_l2_levels_relationships)
         .values(self)
@@ -770,7 +770,7 @@ impl L1L2LevelRelationship{
         Ok(inserted_rows)
     }
 
-    pub fn get(connection:&mut SqliteConnection)->Result<(i32,i32),Error>{
+    pub fn get(connection:&mut SqliteConnection)->QueryResult<(i32,i32)>{
         use super::schema::l1_l2_levels_relationships::dsl::*;
         let get=l1_l2_levels_relationships
         .select((latest_l2_level,l1_level))
@@ -780,7 +780,7 @@ impl L1L2LevelRelationship{
         Ok(get)
     }
 
-    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::l1_l2_levels_relationships::dsl::*;
         let cleared_rows=
         delete(l1_l2_levels_relationships.filter(latest_l2_level.gt(queried_level)))
@@ -788,7 +788,7 @@ impl L1L2LevelRelationship{
         Ok(cleared_rows)
     }
 
-    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->Result<usize,Error>{
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
         use super::schema::l1_l2_levels_relationships::dsl::*;
         let cleared_rows=
         delete(l1_l2_levels_relationships.filter(latest_l2_level.lt(queried_level)))
@@ -797,23 +797,239 @@ impl L1L2LevelRelationship{
     }
 }
 
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = super::schema::l1_l2_finalized_levels)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct L1L2FinalizedLevel{
+    pub l1_level:i32,
+    pub start_l2_level:i32,
+    pub end_l2_level:i32
+}
+
+impl L1L2FinalizedLevel{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let inserted_rows=
+        replace_into(l1_l2_finalized_levels)
+        .values(&self)
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn get(connection:&mut SqliteConnection,queried_l1_level:i32)->QueryResult<(i32,i32)>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let get=l1_l2_finalized_levels
+        .find(queried_l1_level)
+        .select((start_l2_level,end_l2_level))
+        .get_result(connection)?;
+        Ok(get)
+    }
+
+    pub fn last_l2_level(connection:&mut SqliteConnection)->QueryResult<i32>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let max:Option<i32>=
+        l1_l2_finalized_levels
+        .select(max(end_l2_level))
+        .get_result(connection)?;
+        max.ok_or_else(|| NotFound)
+    }
+
+    pub fn last(connection:&mut SqliteConnection)->QueryResult<(i32,i32,i32)>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let last=
+        l1_l2_finalized_levels
+        .select((l1_level,start_l2_level,end_l2_level))
+        .order_by(l1_level.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(last)
+    }
+
+    pub fn find_l1_level(connection:&mut SqliteConnection,queried_l2_level:i32)->QueryResult<i32>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let find=
+        l1_l2_finalized_levels
+        .filter(start_l2_level.lt(queried_l2_level)
+                .and(end_l2_level.ge(queried_l2_level)))
+        .select(l1_level)
+        .order_by(l1_level.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(find)
+    }
+
+    pub fn list_by_l2_levels(connection:&mut SqliteConnection,start_l2:i32,end_l2:i32)->QueryResult<Vec<(i32,i32,i32)>>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let list=
+        l1_l2_finalized_levels
+        .filter(start_l2_level.ge(start_l2)
+                .and(end_l2_level.le(end_l2)))
+        .select((l1_level,start_l2_level,end_l2_level))
+        .order_by(l1_level.asc())
+        .load(connection)?;
+        Ok(list)
+    }
+
+    pub fn list_by_l1_levels(connection:&mut SqliteConnection,start_l1:i32,end_l1:i32)->QueryResult<Vec<(i32,i32,i32)>>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let list=l1_l2_finalized_levels
+        .filter(l1_level.between(start_l1,end_l1))
+        .select((l1_level,start_l2_level,end_l2_level))
+        .order_by(l1_level.asc())
+        .load(connection)?;
+        Ok(list)
+    }
+
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let cleared_rows=
+        delete(l1_l2_finalized_levels.filter(end_l2_level.gt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn clear_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
+        use super::schema::l1_l2_finalized_levels::dsl::*;
+        let cleared_rows=
+        delete(l1_l2_finalized_levels.filter(start_l2_level.lt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = super::schema::irmin_chunks)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct IrminChunk{
+    pub level:i32,
+    pub timestamp:i32
+}
+
+impl IrminChunk{
+    pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
+        use super::schema::irmin_chunks::dsl::*;
+        let inserted_rows=
+        insert_into(irmin_chunks)
+        .values(&self)
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn nth(connection:&mut SqliteConnection,offset:i64)->QueryResult<(i32,i32)>{
+        use super::schema::irmin_chunks::dsl::*;
+        let nth=
+        irmin_chunks
+        .select((level,timestamp))
+        .order_by(level.desc())
+        .limit(1)
+        .offset(offset)
+        .get_result(connection)?;
+        Ok(nth)
+    }
+
+    pub fn latest(connection:&mut SqliteConnection)->QueryResult<(i32,i32)>{
+        use super::schema::irmin_chunks::dsl::*;
+        let latest=
+        irmin_chunks
+        .select((level,timestamp))
+        .order_by(level.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(latest)
+    }
+
+    pub fn clear(connection:&mut SqliteConnection)->QueryResult<usize>{
+        use super::schema::irmin_chunks::dsl::*;
+        let cleared_rows=
+        delete(irmin_chunks)
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn clear_after(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
+        use super::schema::irmin_chunks::dsl::*;
+        let cleared_rows=
+        delete(irmin_chunks.filter(level.gt(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+    pub fn clear_before_included(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<usize>{
+        use super::schema::irmin_chunks::dsl::*;
+        let cleared_rows=
+        delete(irmin_chunks.filter(level.le(queried_level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+    }
+
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = super::schema::block_storage_mode)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct BlockStorageMode{
+    pub legacy:i32
+}
+
+impl BlockStorageMode{
+    pub fn legacy(connection:&mut SqliteConnection)->QueryResult<i32>{
+        use super::schema::block_storage_mode::dsl::*;
+        let leg=
+        block_storage_mode
+        .select(legacy)
+        .get_result(connection)?;
+        Ok(leg)
+    }
+
+    pub fn force_legacy(connection:&mut SqliteConnection)->QueryResult<usize>{
+        use super::schema::block_storage_mode::dsl::*;
+        let updated_rows=
+        update(block_storage_mode)
+        .set(legacy.eq(1))
+        .execute(connection)?;
+        Ok(updated_rows)
+    }   
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = super::schema::migrations)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct Migration{
+    pub id:i32,
+    pub name:Option<String>
+}
+
+impl Migration{
+    pub fn create_table(connection:&mut SqliteConnection)->QueryResult<usize>{
+        let create=sql_query("CREATE TABLE migrations (
+        id SERIAL PRIMARY KEY,
+        name TEXT
+        );")
+        .execute(connection)?;
+        Ok(create)
+    }
+
+    pub fn current_migration(connection:&mut SqliteConnection)->QueryResult<i32>{
+        use super::schema::migrations::dsl::*;
+        let current_id=
+        migrations
+        .select(id)
+        .order_by(id.desc())
+        .limit(1)
+        .get_result(connection)?;
+        Ok(current_id)
+    }
+
+    pub fn register_migration(self,connection:&mut SqliteConnection)->QueryResult<usize>{
+        use super::schema::migrations::dsl::*;
+        let inserted_rows=
+        insert_into(migrations)
+        .values(&self)
+        .execute(connection)?;
+        Ok(inserted_rows)
+    }
+}
 
 
-// pub fn insert<T>(conn:&mut SqliteConnection,object:impl Insertable<T>,table:impl Table)->usize{
-//     insert_into(table)
-//         .values(&object)
-//         .execute(conn)
-//         .unwrap_or_else(|e| panic!("Error inserting object:{}",e))
-// }
 
-// pub fn select_with_primary_key<'a,PK,T,S,U>(conn:&mut SqliteConnection,pk:PK,selection:S,table:T)->U
-// where T:Table + FindDsl<PK>,
-// S: Expression,
-// <T as FindDsl<PK>>::Output:SelectDsl<S>,
-// <<T as FindDsl<PK>>::Output as SelectDsl<S>>::Output:LoadQuery<'a,SqliteConnection,U>{
-//     table.find(pk)
-//     .select(selection)
-//     .get_result(conn)
-//     .unwrap_or_else(|e| panic!("Error selecting object with primary key:{e}"))
-// }
 

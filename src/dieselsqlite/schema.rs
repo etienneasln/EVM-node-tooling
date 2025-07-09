@@ -25,8 +25,8 @@ diesel::table! {
 diesel::table! {
     irmin_chunks (rowid) {
         rowid -> Integer,
-        level -> Nullable<Integer>,
-        timestamp -> Nullable<Timestamp>,
+        level -> Integer,
+        timestamp -> Integer,
     }
 }
 
@@ -42,7 +42,7 @@ diesel::table! {
 
 diesel::table! {
     l1_l2_finalized_levels (l1_level) {
-        l1_level -> Nullable<Integer>,
+        l1_level -> Integer,
         start_l2_level -> Integer,
         end_l2_level -> Integer,
     }
