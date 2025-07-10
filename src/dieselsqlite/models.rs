@@ -481,7 +481,6 @@ impl Metadata {
     }
 }
 
-//TODO: Check if root_hash should be Vec<u8> for serialization
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = super::schema::kernel_upgrades)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
