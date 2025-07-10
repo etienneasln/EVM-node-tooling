@@ -25,7 +25,7 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
    curl -X POST http://localhost:8080/ -H "Content-Type: application/json" --data '{"name":"method_name","params":[#Insert adequate parameters]}'
    ```
 
-## Benchmarks
+## Benchmarks-Apply blueprint
 
 ### Criterion 
 
@@ -33,13 +33,13 @@ Run the `cargo bench` command. Here's a list of custom options with examples:
 
 - Set a custom block number with the `BLOCK_NUMBER` environment variable. If not set, it will take the top block level in the database.
 - Set a custom database path with the `DATABASE_URL` environment variable. If not set, it will take the provided environment variable in the .env file.
-- Use the `cargo bench -- <filter>` command-line option provided by Criterion to filter the desired benchmarks with regular expressions. By default, all benchmarks will be ran.
+- Use the `cargo bench -- <filter>` command-line option provided by Criterion to filter the desired benchmarks with regular expressions. By default, all benchmarks will be ran. Set the filter to `step` to run the benchmarks for all the queries ran during the application of a blueprint (excluding the execution time for writing out to disk). Set it to `Apply_blueprint` to run the whole blueprint application benchmark.
 
 #### Examples
 ```
-BLOCK_NUMBER=200000 DATABASE_URL="./store.sqlite" cargo bench -- "Apply blueprint" 
-cargo bench -- "Insert .*"  
-BLOCK_NUMBER=200000 cargo bench -- "Apply blueprint"  
+$ BLOCK_NUMBER=200000 DATABASE_URL="./store.sqlite" cargo bench -- "Apply blueprint" 
+$ cargo bench -- "step"  
+$ BLOCK_NUMBER=200000 cargo bench -- "Apply blueprint"  
 ```
 
 ### Manual Benchmarks

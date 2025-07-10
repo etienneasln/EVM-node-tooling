@@ -18,5 +18,5 @@ derive_more = "2.0.1"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [[bench]]
-name = "loop"
+name = "applyblueprint"
 harness = false
