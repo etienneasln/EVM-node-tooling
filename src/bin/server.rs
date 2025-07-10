@@ -151,7 +151,7 @@ fn extract_parameter<T>(param:&serde_json::Value)->Result<T,jsonError> where T:D
 
 #[post("/")]
 async fn answer_query(query: web::Json<Sqlquery>) -> Result<impl Responder,ServerError>{
-    let connection=&mut establish_connection(None)?;
+    let connection=&mut establish_connection()?;
     let method_requested=query.name.as_str();
     let response=match  method_requested{
             

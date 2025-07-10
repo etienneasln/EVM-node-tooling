@@ -3,7 +3,7 @@ use evmnodetooling::dieselsqlite::{establish_connection,models::*};
 
 #[test]
 fn test_blueprint_insert_select_clearafter(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
 
     connection.test_transaction::<_,Error,_>(|conn| {
@@ -37,7 +37,7 @@ fn test_blueprint_insert_select_clearafter(){
 
 #[test]
 fn test_blueprint_insert_selectrange_clearafter(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{
         let inserted_payloads=vec!["payload1".as_bytes().to_vec(),"payload2".as_bytes().to_vec(),"payload3".as_bytes().to_vec()];
@@ -88,7 +88,7 @@ fn test_blueprint_insert_selectrange_clearafter(){
 
 #[test]
 fn test_block_insert_selects_clearafter(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{
         let inserted_hash="hash".as_bytes().to_vec();
@@ -135,7 +135,7 @@ fn test_block_insert_selects_clearafter(){
 
 #[test]
 fn test_block_selects(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{
         let select_index=Block::top_level(conn)?;
@@ -159,7 +159,7 @@ fn test_block_selects(){
 
 #[test]
 fn test_transaction_select_insert_clear(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{
         let inserted_block_hash:Vec<u8>="block_hash".as_bytes().to_vec();
@@ -211,7 +211,7 @@ fn test_transaction_select_insert_clear(){
 
 #[test]
 fn test_transaction_selects(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{
         let select_block_level=Block::top_level(conn)?;
@@ -244,7 +244,7 @@ fn test_transaction_selects(){
 
 #[test]
 fn test_apply_blueprint_iterations(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{ 
         let select_index=Blueprint::base_level(conn)?;

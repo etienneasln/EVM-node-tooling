@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use diesel::{connection::LoadConnection, result::Error, Connection as _, RunQueryDsl, SqliteConnection};
+use diesel::{result::Error, Connection as _, RunQueryDsl, SqliteConnection};
 use evmnodetooling::dieselsqlite::{models::*, *};
 use rusqlite::{params, Connection};
 
@@ -9,7 +9,7 @@ use rusqlite::{params, Connection};
 fn criterion_insert_blueprint(c:&mut Criterion){
     let database_url=load_database_url();
     let rusqliteconnection=rusqlite_connection().unwrap();
-    let dieselconnection=&mut establish_connection(None).unwrap();
+    let dieselconnection=&mut establish_connection().unwrap();
     let block_number=load_block_number();
 
     let mut id=block_number;
@@ -73,7 +73,7 @@ fn run_insert_blueprint_rusqlite(connection:&Connection,id:&mut i32,payload:&Vec
 fn criterion_insert_then_clear_blueprint(c:&mut Criterion){
     let database_url=load_database_url();
     let rusqliteconnection=rusqlite_connection().unwrap();
-    let dieselconnection=&mut establish_connection(None).unwrap();
+    let dieselconnection=&mut establish_connection().unwrap();
     let block_number=load_block_number();
 
     let id=block_number;
@@ -135,7 +135,7 @@ fn run_insert_then_clear_blueprint_rusqlite(connection:&Connection,id:i32,payloa
 fn criterion_insert_then_clear_block(c:&mut Criterion){
     let database_url=load_database_url();
     let rusqliteconnection=rusqlite_connection().unwrap();
-    let dieselconnection=&mut establish_connection(None).unwrap();
+    let dieselconnection=&mut establish_connection().unwrap();
     let block_number=load_block_number();
 
     let id=block_number;
@@ -194,7 +194,7 @@ fn criterion_select_then_insert_blueprint(c:&mut Criterion){
     let database_url=load_database_url();
     let block_number=load_block_number();
     if database_url.as_str() != ":memory:"{
-        let connection=&mut establish_connection(None).unwrap();
+        let connection=&mut establish_connection().unwrap();
         let mut id=block_number;
         let (payload,timestamp)=Blueprint::select(connection, id).unwrap();
         let _=Blueprint::clear_after(connection, block_number-1);
@@ -213,7 +213,7 @@ fn criterion_block_select_with_level(c:&mut Criterion){
     let database_url=load_database_url();
     let block_number=load_block_number();
     if database_url.as_str() != ":memory:"{
-        let connection=&mut establish_connection(None).unwrap();
+        let connection=&mut establish_connection().unwrap();
         let id=block_number;
 
         c.bench_function("block_select_with_level",  |b| b.iter(|| run_select_block_with_level(connection,id)));
@@ -230,14 +230,14 @@ fn criterion_apply_blueprint(c:&mut Criterion){
     let database_url=load_database_url();
     if database_url.as_str()!=":memory:"{
         
-        let mut connection=establish_connection(None).unwrap();
+        let mut connection=establish_connection().unwrap();
         // let select_index=Blueprint::base_level(&mut connection).unwrap();//Change to custom number to benchmark against
         let select_index=block_number;
         let clear_index=Blueprint::top_level(&mut connection).unwrap();
         
 
         let setup=||{
-            let mut connection=establish_connection(None).unwrap();
+            let mut connection=establish_connection().unwrap();
             
             let insert_index= Blueprint::top_level(&mut connection).unwrap()+1;
             // println!("Insert_index:{}",insert_index);

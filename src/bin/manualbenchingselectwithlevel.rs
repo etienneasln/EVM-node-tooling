@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use evmnodetooling::dieselsqlite::{establish_connection, models::Block};
 fn main(){
-    let connection=&mut establish_connection(None).unwrap();
+    let connection=&mut establish_connection().unwrap();
     let id=19100196;
     let start=Instant::now();
 
