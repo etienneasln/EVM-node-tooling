@@ -1,6 +1,5 @@
 use diesel::{prelude::*};
 use dotenvy::dotenv;
-use rusqlite::Connection as RusqliteConnection;
 use std::env;
 
 use crate::dieselsqlite::models::Block;
@@ -15,7 +14,8 @@ pub const BLOCK_NUMBER_KEY:&str="BLOCK_NUMBER";
 
 pub fn load_database_url()->String{
     dotenv().ok();
-    env::var(DATABASE_URL_KEY).unwrap_or_else(|_| DEFAULT_DATABASE_PATH.to_string())
+    env::var(DATABASE_URL_KEY)
+    .unwrap_or_else(|_| DEFAULT_DATABASE_PATH.to_string())
 }
 
 pub fn load_block_number()->i32{
@@ -52,30 +52,5 @@ pub fn set_synchronous_mode_to_normal(conn:&mut SqliteConnection)->QueryResult<u
     
 }
 
-//For benchmarking purposes
-pub fn rusqlite_connection()->Result<RusqliteConnection, rusqlite::Error>{
-    let database_url=load_database_url();
-    
-    RusqliteConnection::open(&database_url)
-}
 
-pub const CREATE_TABLE_BLUEPRINTS_QUERY:&str="CREATE TABLE blueprints (
-        id SERIAL PRIMARY KEY,
-        payload BLOB NOT NULL,
-        timestamp DATETIME NOT NULL
-        );";
-
-pub const INSERT_INTO_BLUEPRINTS_QUERY:&str="INSERT INTO blueprints (id,payload,timestamp) VALUES (?1,?2,?3)";
-
-pub const CLEAR_AFTER_BLUEPRINTS_QUERY:&str="DELETE FROM blueprints WHERE id > ?1";
-
-pub const CREATE_TABLE_BLOCKS_QUERY:&str="CREATE TABLE blocks (
-  level serial PRIMARY KEY,
-  hash VARCHAR(32) NOT NULL,
-  block BLOB NOT NULL
-);";
-
-pub const INSERT_INTO_BLOCKS_QUERY:&str="INSERT INTO blocks (level,hash,block) VALUES (?1,?2,?3)";
-
-pub const CLEAR_AFTER_BLOCKS_QUERY:&str="DELETE FROM blocks WHERE level > ?1";
 
