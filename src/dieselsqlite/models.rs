@@ -28,8 +28,8 @@ impl Blueprint{
 
     pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::blueprints::dsl::*;
-        let inserted_rows=insert_into(blueprints)
-        .values(&self)
+        let inserted_rows=
+        self.insert_into(blueprints)
         .execute(connection)?;
         Ok(inserted_rows)
         
@@ -113,11 +113,10 @@ impl Block {
 
     pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::blocks::dsl::*;
-        let inserted_rows=insert_into(blocks)
-        .values(&self)
+        let inserted_rows=
+        self.insert_into(blocks)
         .execute(connection)?;
         Ok(inserted_rows)
-        
     }
 
     pub fn select_with_level(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<Vec<u8>>{
@@ -226,8 +225,7 @@ impl PendingConfirmation{
     pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::pending_confirmations::dsl::*;
         let inserted_rows=
-        insert_into(pending_confirmations)
-        .values(&self)
+        self.insert_into(pending_confirmations)
         .execute(connection)?;
         Ok(inserted_rows)
     }
@@ -284,8 +282,7 @@ impl Transaction{
     pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::transactions::dsl::*;
         let inserted_rows=
-        insert_into(transactions)
-        .values(&self)
+        self.insert_into(transactions)
         .execute(connection)?;
         Ok(inserted_rows)
     }
@@ -465,8 +462,7 @@ impl Metadata {
             value:inserted_value.to_string()
         };
         let inserted_rows=
-        insert_into(metadata)
-        .values(metadata_object)
+        metadata_object.insert_into(metadata)
         .on_conflict(key)
         .do_update()
         .set(value.eq(excluded(value)))
@@ -491,7 +487,7 @@ impl Metadata {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct KernelUpgrade{
     pub injected_before:i32,
-    pub root_hash:String,
+    pub root_hash:Vec<u8>,
     pub activation_timestamp:i32,
     pub applied_before:Option<i32>
 }
@@ -521,7 +517,7 @@ impl KernelUpgrade{
         Ok(activation_levels)
     }
 
-    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->QueryResult<(i32,String,i32)>{
+    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->QueryResult<(i32,Vec<u8>,i32)>{
         use super::schema::kernel_upgrades::dsl::*;
         let latest_unapplied=
         kernel_upgrades
@@ -533,7 +529,7 @@ impl KernelUpgrade{
         Ok(latest_unapplied)
     }
 
-    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<(String,i32)>{
+    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<(Vec<u8>,i32)>{
         use super::schema::kernel_upgrades::dsl::*;
         let result=
         kernel_upgrades
@@ -543,7 +539,7 @@ impl KernelUpgrade{
         Ok(result)
     }
 
-    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->QueryResult<(String,i32)>{
+    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->QueryResult<(Vec<u8>,i32)>{
         use super::schema::kernel_upgrades::dsl::*;
         let latest_injected_after=
         kernel_upgrades
@@ -595,8 +591,8 @@ impl KernelUpgrade{
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct SequencerUpgrade{
     pub injected_before:i32,
-    pub sequencer:String,
-    pub pool_address:String,
+    pub sequencer:Vec<u8>,
+    pub pool_address:Vec<u8>,
     pub activation_timestamp:i32,
     pub applied_before:Option<i32>
 }
@@ -627,7 +623,7 @@ impl SequencerUpgrade{
         Ok(activation_levels)
     }
 
-    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->QueryResult<(i32,String,String,i32)>{
+    pub fn get_latest_unapplied(connection:&mut SqliteConnection)->QueryResult<(i32,Vec<u8>,Vec<u8>,i32)>{
         use super::schema::sequencer_upgrades::dsl::*;
         let latest_unapplied=
         sequencer_upgrades
@@ -639,7 +635,7 @@ impl SequencerUpgrade{
         Ok(latest_unapplied)
     }
 
-    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<(String,String,i32)>{
+    pub fn find_injected_before(connection:&mut SqliteConnection,queried_level:i32)->QueryResult<(Vec<u8>,Vec<u8>,i32)>{
         use super::schema::sequencer_upgrades::dsl::*;
         let result=
         sequencer_upgrades
@@ -649,7 +645,7 @@ impl SequencerUpgrade{
         Ok(result)
     }
 
-    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->QueryResult<(String,String,i32)>{
+    pub fn find_latest_injected_after(connection:&mut SqliteConnection, queried_level:i32)->QueryResult<(Vec<u8>,Vec<u8>,i32)>{
         use super::schema::sequencer_upgrades::dsl::*;
         let latest_injected_after=
         sequencer_upgrades
@@ -711,8 +707,7 @@ impl DelayedTransaction{
     pub fn insert(self, connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::delayed_transactions::dsl::*;
         let inserted_rows=
-        insert_into(delayed_transactions)
-        .values(&self)
+        self.insert_into(delayed_transactions)
         .execute(connection)?;
         Ok(inserted_rows)
     }
@@ -764,8 +759,8 @@ impl L1L2LevelRelationship{
 
     pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::l1_l2_levels_relationships::dsl::*;
-        let inserted_rows=insert_into(l1_l2_levels_relationships)
-        .values(self)
+        let inserted_rows=
+        self.insert_into(l1_l2_levels_relationships)
         .execute(connection)?;
         Ok(inserted_rows)
     }
@@ -909,8 +904,7 @@ impl IrminChunk{
     pub fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize>{
         use super::schema::irmin_chunks::dsl::*;
         let inserted_rows=
-        insert_into(irmin_chunks)
-        .values(&self)
+        self.insert_into(irmin_chunks)
         .execute(connection)?;
         Ok(inserted_rows)
     }

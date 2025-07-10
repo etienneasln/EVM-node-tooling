@@ -34,7 +34,7 @@ diesel::table! {
     kernel_upgrades (rowid) {
         rowid -> Integer,
         injected_before -> Integer,
-        root_hash -> Text,
+        root_hash -> Binary,
         activation_timestamp -> Integer,
         applied_before -> Nullable<Integer>,
     }
@@ -66,8 +66,8 @@ diesel::table! {
     sequencer_upgrades (rowid) {
         rowid -> Integer,
         injected_before -> Integer,
-        sequencer -> Text,
-        pool_address -> Text,
+        sequencer -> Binary,
+        pool_address -> Binary,
         activation_timestamp -> Integer,
         applied_before -> Nullable<Integer>,
     }

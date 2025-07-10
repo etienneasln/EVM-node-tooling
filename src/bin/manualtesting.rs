@@ -89,7 +89,7 @@ fn main(){
     
     let kernel_upgrade=KernelUpgrade{
         injected_before:1000,
-        root_hash:"hash".to_string(),
+        root_hash:"hash".as_bytes().to_vec(),
         activation_timestamp:2000,
         applied_before:Some(1004)
     };
