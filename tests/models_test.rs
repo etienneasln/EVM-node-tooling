@@ -343,6 +343,191 @@ fn test_context_hash_insert_select_get_clear() {
 }
 
 #[test]
+fn test_metadata_insert_select() {
+    let connection = &mut establish_connection().unwrap();
+
+    connection.test_transaction::<_, Error, _>(|conn| {
+        let history_mode = "new history mode";
+
+        Metadata::insert_history_mode(conn, history_mode)?;
+
+        let new_history_mode = Metadata::get_history_mode(conn)?;
+
+        assert_eq!(new_history_mode, history_mode);
+
+        let smart_rollup_node_address = "new smart rollup node address";
+
+        Metadata::insert_smart_rollup_address(conn, smart_rollup_node_address)?;
+
+        let new_smart_rollup_node_address = Metadata::get_smart_rollup_address(conn)?;
+
+        assert_eq!(new_smart_rollup_node_address, smart_rollup_node_address);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn test_kernel_upgrade_all() {
+    let connection = &mut establish_connection().unwrap();
+
+    connection.test_transaction::<_, Error, _>(|conn| {
+        let iter = 10;
+        let mut expected_activation_levels: Vec<i32> = Vec::new();
+        for i in 0..iter {
+            let inserted_injected_before = 5000 + i;
+            let inserted_root_hash = format!("root_hash {}", i).as_bytes().to_vec();
+            let inserted_activation_timestamp = i;
+            let inserted_applied_before = None;
+
+            let kernel_upgrade = KernelUpgrade {
+                injected_before: inserted_injected_before,
+                root_hash: inserted_root_hash.clone(),
+                activation_timestamp: inserted_activation_timestamp,
+                applied_before: inserted_applied_before,
+            };
+
+            kernel_upgrade.insert(conn)?;
+
+            let applied_before = 6000 + i;
+
+            KernelUpgrade::record_apply(conn, applied_before)?;
+
+            expected_activation_levels.push(applied_before);
+        }
+
+        expected_activation_levels.reverse();
+
+        let inserted_injected_before = 5000 + iter;
+        let inserted_root_hash = format!("root_hash {}", iter).as_bytes().to_vec();
+        let inserted_activation_timestamp = iter;
+        let inserted_applied_before = None;
+
+        let kernel_upgrade = KernelUpgrade {
+            injected_before: inserted_injected_before,
+            root_hash: inserted_root_hash.clone(),
+            activation_timestamp: inserted_activation_timestamp,
+            applied_before: inserted_applied_before,
+        };
+
+        kernel_upgrade.insert(conn)?;
+
+        let (injected_before, root_hash, activation_timestamp) =
+            KernelUpgrade::get_latest_unapplied(conn)?;
+
+        assert_eq!(injected_before, inserted_injected_before);
+        assert_eq!(root_hash, inserted_root_hash);
+        assert_eq!(activation_timestamp, inserted_activation_timestamp);
+
+        let injected_before = 5000;
+        let expected_root_hash = "root_hash 0".as_bytes().to_vec();
+        let expected_activation_timestamp = 0;
+
+        let (root_hash, activation_timestamp) =
+            KernelUpgrade::find_injected_before(conn, injected_before)?;
+
+        assert_eq!(root_hash, expected_root_hash);
+        assert_eq!(activation_timestamp, expected_activation_timestamp);
+
+        let activations_levels = KernelUpgrade::activation_levels(conn)?;
+
+        assert_eq!(activations_levels, expected_activation_levels);
+
+        let (root_hash, activation_timestamp) =
+            KernelUpgrade::find_latest_injected_after(conn, inserted_injected_before - 4)?;
+
+        assert_eq!(root_hash, inserted_root_hash);
+        assert_eq!(activation_timestamp, inserted_activation_timestamp);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn test_sequencer_upgrade_all() {
+    let connection = &mut establish_connection().unwrap();
+
+    connection.test_transaction::<_, Error, _>(|conn| {
+        let iter = 10;
+        let mut expected_activation_levels: Vec<i32> = Vec::new();
+        for i in 0..iter {
+            let inserted_injected_before = 5000 + i;
+            let inserted_sequencer = format!("sequencer {}", i).as_bytes().to_vec();
+            let inserted_pool_address = format!("pool_address {}", i).as_bytes().to_vec();
+            let inserted_activation_timestamp = i;
+            let inserted_applied_before = None;
+
+            let sequencer_upgrade = SequencerUpgrade {
+                injected_before: inserted_injected_before,
+                sequencer: inserted_sequencer.clone(),
+                pool_address: inserted_pool_address.clone(),
+                activation_timestamp: inserted_activation_timestamp,
+                applied_before: inserted_applied_before,
+            };
+
+            sequencer_upgrade.insert(conn)?;
+
+            let applied_before = 6000 + i;
+
+            SequencerUpgrade::record_apply(conn, applied_before)?;
+
+            expected_activation_levels.push(applied_before);
+        }
+
+        expected_activation_levels.reverse();
+
+        let inserted_injected_before = 5000 + iter;
+        let inserted_sequencer = format!("sequencer {}", iter).as_bytes().to_vec();
+        let inserted_pool_address = format!("pool_address {}", iter).as_bytes().to_vec();
+        let inserted_activation_timestamp = iter;
+        let inserted_applied_before = None;
+
+        let sequencer_upgrade = SequencerUpgrade {
+            injected_before: inserted_injected_before,
+            sequencer: inserted_sequencer.clone(),
+            pool_address: inserted_pool_address.clone(),
+            activation_timestamp: inserted_activation_timestamp,
+            applied_before: inserted_applied_before,
+        };
+
+        sequencer_upgrade.insert(conn)?;
+
+        let (injected_before, sequencer, pool_address, activation_timestamp) =
+            SequencerUpgrade::get_latest_unapplied(conn)?;
+
+        assert_eq!(injected_before, inserted_injected_before);
+        assert_eq!(sequencer, inserted_sequencer);
+        assert_eq!(pool_address, inserted_pool_address);
+        assert_eq!(activation_timestamp, inserted_activation_timestamp);
+
+        let injected_before = 5000;
+        let expected_sequencer = "sequencer 0".as_bytes().to_vec();
+        let expected_pool_address = "pool_address 0".as_bytes().to_vec();
+        let expected_activation_timestamp = 0;
+
+        let (sequencer, pool_address, activation_timestamp) =
+            SequencerUpgrade::find_injected_before(conn, injected_before)?;
+
+        assert_eq!(sequencer, expected_sequencer);
+        assert_eq!(pool_address, expected_pool_address);
+        assert_eq!(activation_timestamp, expected_activation_timestamp);
+
+        let activations_levels = SequencerUpgrade::activation_levels(conn)?;
+
+        assert_eq!(activations_levels, expected_activation_levels);
+
+        let (sequencer, pool_address, activation_timestamp) =
+            SequencerUpgrade::find_latest_injected_after(conn, inserted_injected_before - 4)?;
+
+        assert_eq!(sequencer, inserted_sequencer);
+        assert_eq!(pool_address, inserted_pool_address);
+        assert_eq!(activation_timestamp, inserted_activation_timestamp);
+
+        Ok(())
+    })
+}
+
+#[test]
 fn test_apply_blueprint_iterations() {
     let connection = &mut establish_connection().unwrap();
 
