@@ -158,7 +158,7 @@ fn test_block_selects(){
 }
 
 #[test]
-fn test_transaction_select_insert_clear(){
+fn test_transaction_insert_select_clear(){
     let connection=&mut establish_connection().unwrap();
 
     connection.test_transaction::<_,Error,_>(|conn|{
@@ -205,8 +205,6 @@ fn test_transaction_select_insert_clear(){
     })
 
     
-
-    
 }
 
 #[test]
@@ -245,7 +243,109 @@ fn test_transaction_selects(){
     
 }
 
+#[test]
+fn test_pending_confirmation_insert_select_delete(){
+    let connection=&mut establish_connection().unwrap();
 
+    connection.test_transaction::<_,Error,_>(|conn| {
+        let inserted_level=0;
+        let inserted_hash="hash".as_bytes().to_vec();
+        
+        let pendingconfirmation=PendingConfirmation{
+            level:inserted_level,
+            hash:inserted_hash.clone()
+        };
+        pendingconfirmation.insert(conn)?;
+        
+        let hash=PendingConfirmation::select_with_level(conn,inserted_level)?;
+
+        assert_eq!(hash,inserted_hash);
+
+        let expected_delete_row=1;
+
+        let delete_row=PendingConfirmation::delete_with_level(conn, inserted_level)?;
+
+        assert_eq!(delete_row,expected_delete_row);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn test_pending_confirmation_insert_count_clear(){
+    let connection=&mut establish_connection().unwrap();
+
+    connection.test_transaction::<_,Error,_>(|conn| {
+        let iter=10;
+        for i in 0..iter{
+            let inserted_level=i;
+            let inserted_hash=format!("hash {i}").as_bytes().to_vec();
+            
+            let pendingconfirmation=PendingConfirmation{
+                level:inserted_level,
+                hash:inserted_hash.clone()
+            };
+            pendingconfirmation.insert(conn)?;
+        }
+
+        let expected_count:i64=iter.into();
+
+        let count=PendingConfirmation::count(conn)?;
+
+        assert_eq!(count,expected_count);
+
+        let expected_clear:usize=iter as usize;
+
+        let clear=PendingConfirmation::clear(conn)?;
+
+        assert_eq!(clear,expected_clear);
+       
+
+        Ok(())
+    })
+}
+
+#[test]
+fn test_context_hash_insert_select_get_clear(){
+    let connection=&mut establish_connection().unwrap();
+
+    connection.test_transaction::<_,Error,_>(|conn| {
+        let iter=10;
+        for i in -1..iter{
+            let inserted_level=i;
+            let inserted_hash=format!("hash {i}").as_bytes().to_vec();
+            
+            let contexthash=ContextHash{
+                id:inserted_level,
+                context_hash:inserted_hash.clone()
+            };
+            contexthash.insert(conn)?;
+        }
+
+        let _=ContextHash::clear_after(conn, iter)?;
+
+        let expected_earliest=(0,"hash 0".as_bytes().to_vec());
+
+        let earliest=ContextHash::get_earliest(conn)?;
+
+        assert_eq!(earliest,expected_earliest);
+
+        let expected_latest=(iter-1,format!("hash {}",iter-1).as_bytes().to_vec());
+
+        let latest=ContextHash::get_latest(conn)?;
+        
+        assert_eq!(latest,expected_latest);     
+        
+        let expected_clear:usize=(iter+1) as usize;
+
+        let clear=ContextHash::clear_before(conn,iter)?;
+
+        assert_eq!(clear,expected_clear);
+
+        
+        Ok(())
+    })
+}
 
 #[test]
 fn test_apply_blueprint_iterations(){
