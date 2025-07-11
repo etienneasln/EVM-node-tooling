@@ -221,26 +221,31 @@ fn test_transaction_selects(){
 
         let objects=Transaction::select_objects_from_block_number(conn, select_block_level)?;
 
+        let length=receipts.len();
+        for i in 0..length{
+            let (vec_block_hash,vec_index_,vec_hash,vec_from_,vec_to_,vec_receipt_fields)=(&receipts[i]).clone();
+            let (_,_,_,_,vec_object_fields)=(&objects[i]).clone();
 
-        let (vec_block_hash,vec_index_,vec_hash,vec_from_,vec_to_,vec_receipt_fields)=(&receipts[0]).clone();
-        let (_,_,_,_,vec_object_fields)=(&objects[0]).clone();
-
-        let (block_hash,block_number,index_,hash,from_,to_,receipt_fields)=Transaction::select_receipt(conn, &vec_hash)?;
-        let (_,_,_,_,_,_,object_fields)=Transaction::select_object(conn, &vec_hash)?;
+            let (block_hash,block_number,index_,hash,from_,to_,receipt_fields)=Transaction::select_receipt(conn, &vec_hash)?;
+            let (_,_,_,_,_,_,object_fields)=Transaction::select_object(conn, &vec_hash)?;
 
 
-        assert_eq!(block_hash,vec_block_hash);
-        assert_eq!(block_number,select_block_level);
-        assert_eq!(index_, vec_index_);
-        assert_eq!(hash,vec_hash);
-        assert_eq!(from_,vec_from_);
-        assert_eq!(to_,vec_to_);
-        assert_eq!(receipt_fields,vec_receipt_fields);
-        assert_eq!(object_fields,vec_object_fields);
+            assert_eq!(block_hash,vec_block_hash);
+            assert_eq!(block_number,select_block_level);
+            assert_eq!(index_, vec_index_);
+            assert_eq!(hash,vec_hash);
+            assert_eq!(from_,vec_from_);
+            assert_eq!(to_,vec_to_);
+            assert_eq!(receipt_fields,vec_receipt_fields);
+            assert_eq!(object_fields,vec_object_fields);
+        }
+        
         Ok(())
     })
     
 }
+
+
 
 #[test]
 fn test_apply_blueprint_iterations(){
