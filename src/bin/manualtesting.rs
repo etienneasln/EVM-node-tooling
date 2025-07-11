@@ -1,4 +1,6 @@
-use diesel::{ExpressionMethods, debug_query, dsl::*, sqlite::Sqlite};
+use diesel::{
+    ExpressionMethods, debug_query, dsl::*, query_dsl::methods::FilterDsl, sqlite::Sqlite,
+};
 use evmnodetooling::dieselsqlite::{
     establish_connection, models::*, schema::kernel_upgrades::dsl::*,
 };
@@ -95,19 +97,26 @@ fn main() {
         injected_before: 1000,
         root_hash: "hash".as_bytes().to_vec(),
         activation_timestamp: 2000,
-        applied_before: Some(1004),
+        applied_before: None,
     };
 
-    let binding = replace_into(kernel_upgrades).values((
+    let binding1 = replace_into(kernel_upgrades).values((
         injected_before.eq(kernel_upgrade.injected_before),
         root_hash.eq(kernel_upgrade.root_hash.clone()),
         activation_timestamp.eq(kernel_upgrade.activation_timestamp),
     ));
-    let sql = debug_query::<Sqlite, _>(&binding);
+
+    let binding2 = update(kernel_upgrades.filter(applied_before.gt(1000)))
+        .set(applied_before.eq::<Option<i32>>(None));
+
+    let sql = debug_query::<Sqlite, _>(&binding1);
+    println!("SQL:{:?}", sql);
+    let sql = debug_query::<Sqlite, _>(&binding2);
     println!("SQL:{:?}", sql);
 
     let _ = kernel_upgrade.insert(connection).unwrap();
-    let _ = KernelUpgrade::nullify_after(connection, 1003);
+    let _ = KernelUpgrade::record_apply(connection, 1004);
+    let _ = KernelUpgrade::nullify_after(connection, 1003).unwrap();
     let latest_unapplied = KernelUpgrade::get_latest_unapplied(connection).unwrap();
     println!("Latest unapplied:{:?}", latest_unapplied);
     let _ = KernelUpgrade::clear_after(connection, 999);
