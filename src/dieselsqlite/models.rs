@@ -1,15 +1,39 @@
-use diesel::{dsl::*, prelude::*, result::Error, sql_query, sql_types::Binary, upsert::excluded, Table};
+use diesel::{dsl::*, insertable::CanInsertInSingleQuery, prelude::*, query_builder::{QueryFragment, QueryId}, result::Error, sql_query, sql_types::{Binary}, sqlite::Sqlite, upsert::excluded, Table};
+use super::schema::blueprints::table as Blueprints;
+use super::schema::blocks::table as Blocks;
+use super::schema::pending_confirmations::table as PendingConfirmations;
 
-pub trait EVMNodeInsertable<T>:Insertable<T> where T:Table{
-
-    
+pub trait EVMNodeObject<T> where T:Table+'static{
     fn table()->T;
+}
+pub trait EVMNodeInsertable<T>:EVMNodeObject<T>+Insertable<T> where T:Table+QueryId+'static{
 
-    fn insert(&self,connection:&mut SqliteConnection)->QueryResult<usize> where Self:Sized{
+    fn insert(self,connection:&mut SqliteConnection)->QueryResult<usize> where Self:Sized,
+    <Self as diesel::Insertable<T>>::Values: QueryId+QueryFragment<Sqlite>+CanInsertInSingleQuery<Sqlite>,
+     <T as QuerySource>::FromClause: QueryFragment<Sqlite>{
         let inserted_rows=
         self.insert_into(Self::table())
         .execute(connection)?;
         Ok(inserted_rows)
+    }
+}
+
+pub trait EVMNodeClearable<T>:EVMNodeObject<T> where T:Table+QueryId+'static+Sized{
+
+    fn level_column()->impl Expression;
+
+    fn clear_after(connection:&mut SqliteConnection,level:i32)->QueryResult<usize>{
+        let cleared_rows=delete(Self::table().filter(Self::level_column().gt(level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
+
+        
+    }
+
+    fn clear_before(connection:&mut SqliteConnection,level:i32)->QueryResult<usize> where Self:Sized{
+        let cleared_rows=delete(Self::table().filter(Self::level_column().lt(level)))
+        .execute(connection)?;
+        Ok(cleared_rows)
     }
 }
 
@@ -22,6 +46,12 @@ pub struct Blueprint{
     pub payload:Vec<u8>,
     pub timestamp:i32
 }
+
+impl EVMNodeObject<Blueprints> for Blueprint{
+    fn table()->Blueprints{
+        Blueprints
+    }
+} 
 
 impl Blueprint{
 
@@ -119,6 +149,12 @@ pub struct Block {
     pub hash:Vec<u8>,
     pub block:Vec<u8>
 }
+
+impl EVMNodeObject<Blocks> for Block {
+    fn table()->Blocks{
+        Blocks
+    }
+} 
 
 impl Block {
 
@@ -230,6 +266,12 @@ impl Block {
 pub struct PendingConfirmation{
     pub level:i32,
     pub hash:Vec<u8>
+}
+
+impl EVMNodeObject<PendingConfirmations> for PendingConfirmation{
+    fn table()->PendingConfirmations{
+        PendingConfirmations
+    }
 }
 
 impl PendingConfirmation{
