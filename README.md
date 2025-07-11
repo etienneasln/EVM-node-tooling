@@ -27,6 +27,8 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
 
 ## Benchmarks-Apply blueprint
 
+It is possible to benchmark part of the execution of apply_blueprint with this library, namely all the SQL queries and the start/commit of the SQL transaction to the `store.sqlite` file. This is done by running some queries for a specific block number, by generating new hashes for each insert (inserting in the same tables as when the node is running). The only query that can't be benchmarked is the queries in `pending_confirmations` because the table is empty as the node isn't running. It is not possible to run benchmarks pointing to the node's store while the node is running because SQLite does not allow concurrent writes.
+
 ### Criterion 
 
 Run the `cargo bench` command. Here's a list of custom options with examples:  
