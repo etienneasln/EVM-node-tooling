@@ -85,7 +85,7 @@ diesel::allow_tables_to_appear_in_same_query!(
 
 //WRITTEN MANUALLY
 
-diesel::table!{
+diesel::table! {
     blocks (level) {
         level -> Integer,
         hash -> Binary,
@@ -93,7 +93,7 @@ diesel::table!{
     }
 }
 
-diesel::table!{
+diesel::table! {
     blueprints (id) {
         id -> Integer,
         payload -> Binary,
@@ -101,28 +101,28 @@ diesel::table!{
     }
 }
 
-diesel::table!{
+diesel::table! {
     context_hashes (id) {
         id -> Integer,
         context_hash -> Binary,
     }
 }
 
-diesel::table!{
+diesel::table! {
     migrations (id){
         id->Integer,
         name->Nullable<Text>,
     }
 }
 
-diesel::table!{
+diesel::table! {
     pending_confirmations (level){
         level->Integer,
         hash->Binary,
     }
 }
 
-diesel::table!{
+diesel::table! {
     transactions (hash){
         block_hash ->Binary ,
         block_number->Integer,
