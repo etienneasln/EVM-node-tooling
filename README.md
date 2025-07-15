@@ -35,7 +35,7 @@ Run the `cargo bench` command. Here's a list of custom options with examples:
 
 - Set a custom block number with the `BLOCK_NUMBER` environment variable. If not set, it will take the top block level in the database.
 - Set a custom database path with the `DATABASE_URL` environment variable. If not set, it will take the provided environment variable in the .env file.
-- Use the `cargo bench -- <filter>` command-line option provided by Criterion to filter the desired benchmarks with regular expressions. By default, all benchmarks will be ran. Set the filter to `step` to run the benchmarks for all the queries ran during the application of a blueprint (excluding the execution time for writing out to disk). Set it to `Apply_blueprint` to run the whole blueprint application benchmark.
+- Use the `cargo bench -- <filter>` command-line option provided by Criterion to filter the desired benchmarks with regular expressions. By default, all benchmarks will be ran. Set the filter to `step` to run the benchmarks for all the queries ran during the application of a blueprint (excluding the execution time for writing out to disk). Set it to `Apply blueprint` to run the whole blueprint application benchmark.
 
 #### Examples
 ```
