@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
 
+use crate::dieselsqlite::models::block::Block;
 
 pub mod models;
 pub mod schema;
