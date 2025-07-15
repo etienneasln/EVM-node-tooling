@@ -647,7 +647,7 @@ fn test_l1_l2_level_relationship_all() {
 }
 
 #[test]
-fn test_l1_l2_finalized_level_al() {
+fn test_l1_l2_finalized_level_all() {
     let connection = &mut establish_connection().unwrap();
 
     connection.test_transaction::<_, Error, _>(|conn| {
@@ -725,6 +725,93 @@ fn test_l1_l2_finalized_level_al() {
 
         Ok(())
     })
+}
+
+#[test]
+fn test_irmin_chunk_all() {
+    let connection = &mut establish_connection().unwrap();
+
+    connection.test_transaction::<_, Error, _>(|conn| {
+        IrminChunk::clear(conn)?;
+
+        let iter = 3;
+        let level_base = Block::top_level(conn)?;
+        let timestamp_base = 6000;
+        for i in 0..iter {
+            let chunk = IrminChunk {
+                level: level_base + i,
+                timestamp: timestamp_base + i,
+            };
+            chunk.insert(conn)?;
+        }
+
+        let expected_nth = (level_base, timestamp_base);
+
+        let nth = IrminChunk::nth(conn, (iter - 1) as i64)?;
+
+        assert_eq!(nth, expected_nth);
+
+        let expected_latest = (level_base + iter - 1, timestamp_base + iter - 1);
+
+        let latest = IrminChunk::latest(conn)?;
+
+        assert_eq!(latest, expected_latest);
+
+        let expected_clear = iter as usize;
+
+        let clear = IrminChunk::clear_after(conn, level_base - 1)?;
+
+        assert_eq!(clear, expected_clear);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn test_block_storage_mode() {
+    let connection = &mut establish_connection().unwrap();
+
+    connection.test_transaction::<_, Error, _>(|conn| {
+        let mut expected_legacy = 0;
+
+        let legacy = BlockStorageMode::legacy(conn)?;
+
+        assert_eq!(legacy, expected_legacy);
+
+        BlockStorageMode::force_legacy(conn)?;
+
+        expected_legacy = 1;
+
+        let legacy = BlockStorageMode::legacy(conn)?;
+
+        assert_eq!(legacy, expected_legacy);
+
+        Ok(())
+    });
+}
+
+#[test]
+fn test_migration_all() {
+    let connection = &mut establish_connection().unwrap();
+
+    connection.test_transaction::<_, Error, _>(|conn| {
+        let _ = Migration::create_table(conn);
+
+        let current_migration = Migration::current_migration(conn)?;
+
+        let id = current_migration + 1;
+        let name = Some(String::from("test text"));
+
+        let migration = Migration { id, name };
+
+        migration.register_migration(conn)?;
+
+        let new_current_migration = Migration::current_migration(conn)?;
+
+        assert_eq!(new_current_migration, id);
+
+        Ok(())
+    });
 }
 
 #[test]
