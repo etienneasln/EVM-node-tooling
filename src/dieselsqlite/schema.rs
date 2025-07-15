@@ -1,11 +1,5 @@
 //GENERATED AUTOMATICALLY BY DIESEL CLI
 
-//Integer from INTEGER NOT NULL, INT NOT NULL, Automatic rowid when there's no PRIMARY KEY, INT NOT NULL UNIQUE ON CONFLICT ABORT
-//Text from TEXT NOT NULL, TEXT PRIMARY KEY NOT NULL
-//Nullable<Integer> from INTEGER, INT, INTEGER PRIMARY KEY
-//Nullable<Timestamp> from Timestamp
-//Nullable<Binary> PRIMARY KEY ON CONFLICT REPLACE (no explicit type)
-
 diesel::table! {
     block_storage_mode (rowid) {
         rowid -> Integer,
