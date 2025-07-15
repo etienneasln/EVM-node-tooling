@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{context_hashes, context_hashes::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = context_hashes)]

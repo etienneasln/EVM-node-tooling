@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{pending_confirmations, pending_confirmations::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = pending_confirmations)]

@@ -27,7 +27,3 @@ pub use migration::*;
 pub use pendingconfirmation::*;
 pub use sequencerupgrade::*;
 pub use transaction::*;
-
-pub use diesel::{
-    dsl::*, prelude::*, result::Error::*, sql_query, sql_types::Binary, upsert::excluded,
-};

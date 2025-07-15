@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{irmin_chunks, irmin_chunks::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = irmin_chunks)]

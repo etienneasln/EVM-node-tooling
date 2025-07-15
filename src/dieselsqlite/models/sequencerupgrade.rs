@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{sequencer_upgrades, sequencer_upgrades::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = sequencer_upgrades)]

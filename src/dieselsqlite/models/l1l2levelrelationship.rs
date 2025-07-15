@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{l1_l2_levels_relationships, l1_l2_levels_relationships::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = l1_l2_levels_relationships)]

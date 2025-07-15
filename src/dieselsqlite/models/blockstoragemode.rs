@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{block_storage_mode, block_storage_mode::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = block_storage_mode)]

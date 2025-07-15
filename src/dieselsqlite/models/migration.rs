@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{migrations, migrations::dsl::*};
+use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = migrations)]

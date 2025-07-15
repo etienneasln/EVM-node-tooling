@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{metadata, metadata::dsl::*};
+use diesel::{prelude::*, upsert::excluded};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = metadata)]

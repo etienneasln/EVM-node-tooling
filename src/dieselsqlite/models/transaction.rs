@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::transactions;
+use diesel::{dsl::*, prelude::*, sql_query, sql_types::Binary};
 
 #[derive(Queryable, Selectable, Insertable, QueryableByName)]
 #[diesel(table_name = transactions)]

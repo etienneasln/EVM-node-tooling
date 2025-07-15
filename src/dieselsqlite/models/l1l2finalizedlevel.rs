@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::{l1_l2_finalized_levels, l1_l2_finalized_levels::dsl::*};
+use diesel::{dsl::*, prelude::*, result::Error::NotFound};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = l1_l2_finalized_levels)]

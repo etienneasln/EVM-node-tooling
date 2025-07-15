@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::blocks;
+use diesel::{dsl::*, prelude::*, sql_types::Binary};
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = blocks)]

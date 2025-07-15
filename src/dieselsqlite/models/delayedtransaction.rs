@@ -1,5 +1,5 @@
-use super::*;
 use crate::dieselsqlite::schema::delayed_transactions;
+use diesel::{dsl::*, prelude::*, sql_types::Binary};
 
 #[derive(Queryable, Selectable, Insertable, QueryableByName)]
 #[diesel(table_name = delayed_transactions)]
