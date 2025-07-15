@@ -1,5 +1,5 @@
 use super::*;
-use crate::dieselsqlite::schema::{blueprints,blueprints::dsl::*};
+use crate::dieselsqlite::schema::{blueprints, blueprints::dsl::*};
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = blueprints)]

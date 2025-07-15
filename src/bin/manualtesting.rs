@@ -1,6 +1,4 @@
-use diesel::{
-    ExpressionMethods, debug_query, dsl::*, query_dsl::methods::FilterDsl, sqlite::Sqlite,
-};
+use diesel::{ExpressionMethods, debug_query, dsl::*, sqlite::Sqlite};
 use evmnodetooling::dieselsqlite::{
     establish_connection, models::*, schema::kernel_upgrades::dsl::*,
 };
@@ -106,8 +104,11 @@ fn main() {
         activation_timestamp.eq(kernel_upgrade.activation_timestamp),
     ));
 
-    let binding2 = update(kernel_upgrades.filter(applied_before.gt(1000)))
-        .set(applied_before.eq::<Option<i32>>(None));
+    let binding2 = update(diesel::QueryDsl::filter(
+        kernel_upgrades,
+        applied_before.gt(1000),
+    ))
+    .set(applied_before.eq::<Option<i32>>(None));
 
     let sql = debug_query::<Sqlite, _>(&binding1);
     println!("SQL:{:?}", sql);

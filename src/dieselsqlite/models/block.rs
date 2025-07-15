@@ -1,5 +1,5 @@
 use super::*;
-use crate::dieselsqlite::schema::{blocks,blocks::dsl::*};
+use crate::dieselsqlite::schema::blocks;
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = blocks)]
@@ -12,6 +12,8 @@ pub struct Block {
 
 impl Block {
     pub fn insert(self, connection: &mut SqliteConnection) -> QueryResult<usize> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let inserted_rows = self.insert_into(blocks).execute(connection)?;
         Ok(inserted_rows)
     }
@@ -20,6 +22,8 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_level: i32,
     ) -> QueryResult<Vec<u8>> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let b = blocks
             .find(queried_level)
             .select(block)
@@ -41,6 +45,8 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_level: i32,
     ) -> QueryResult<Vec<u8>> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let h = blocks
             .find(queried_level)
             .select(hash)
@@ -62,6 +68,8 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_level: i32,
     ) -> QueryResult<usize> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let cleared_rows = delete(blocks.filter(level.gt(queried_level))).execute(connection)?;
         Ok(cleared_rows)
     }
@@ -70,6 +78,8 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_level: i32,
     ) -> QueryResult<usize> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let cleared_rows = delete(blocks.filter(level.lt(queried_level))).execute(connection)?;
         Ok(cleared_rows)
     }
@@ -77,11 +87,15 @@ impl Block {
     //For testing
 
     pub fn count(connection: &mut SqliteConnection) -> QueryResult<i64> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let count = blocks.select(count(level)).first(connection)?;
         Ok(count)
     }
 
     pub fn base_level(connection: &mut SqliteConnection) -> QueryResult<i32> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let base_level = blocks
             .select(level)
             .order(level.asc())
@@ -91,6 +105,8 @@ impl Block {
     }
 
     pub fn top_level(connection: &mut SqliteConnection) -> QueryResult<i32> {
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+
         let base_level = blocks
             .select(level)
             .order(level.desc())

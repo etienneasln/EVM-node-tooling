@@ -53,7 +53,7 @@ fn main() {
         id: insert_index,
         context_hash: ContextHash::select(connection, select_index).unwrap(),
     };
-    let now = Instant::now();
+    let start = Instant::now();
     connection
         .transaction::<_, Error, _>(|conn| {
             let _ = PendingConfirmation::select_with_level(conn, blueprint.id);
@@ -69,7 +69,7 @@ fn main() {
             Ok(())
         })
         .unwrap();
-    let elapsed = now.elapsed();
+    let elapsed = start.elapsed();
 
     let _ = Blueprint::clear_after(connection, clear_index).unwrap();
     let _ = Block::clear_after(connection, clear_index).unwrap();

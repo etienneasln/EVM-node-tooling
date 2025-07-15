@@ -127,12 +127,12 @@ enum SqlResponse {
         level: i32,
         timestamp: i32,
     },
-    BlockStorageMode{
-        legacy:i32
+    BlockStorageMode {
+        legacy: i32,
     },
-    CurrentMigrationId{
-        id:i32
-    }
+    CurrentMigrationId {
+        id: i32,
+    },
 }
 
 #[derive(Debug)]
@@ -438,12 +438,12 @@ async fn answer_query(query: web::Json<Sqlquery>) -> Result<impl Responder, Serv
             let (level, timestamp) = IrminChunk::latest(connection)?;
             SqlResponse::IrminChunk { level, timestamp }
         }
-        "block_storage_mode"=>{
-            let legacy=BlockStorageMode::legacy(connection)?;
+        "block_storage_mode" => {
+            let legacy = BlockStorageMode::legacy(connection)?;
             SqlResponse::BlockStorageMode { legacy }
         }
-        "current_migration"=>{
-            let id=Migration::current_migration(connection)?;
+        "current_migration" => {
+            let id = Migration::current_migration(connection)?;
             SqlResponse::CurrentMigrationId { id }
         }
         _ => {
