@@ -35,3 +35,37 @@ impl Migration {
         Ok(inserted_rows)
     }
 }
+
+#[cfg(test)]
+mod migration_test {
+    use super::*;
+    use crate::dieselsqlite::establish_connection;
+    use diesel::result::Error;
+
+    #[test]
+    fn test_migration_all() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            let _ = Migration::create_table(conn);
+
+            let current_migration = Migration::current_migration(conn)?;
+
+            let current_id = current_migration + 1;
+            let current_name = Some(String::from("test text"));
+
+            let migration = Migration {
+                id: current_id,
+                name: current_name,
+            };
+
+            migration.register_migration(conn)?;
+
+            let new_current_migration = Migration::current_migration(conn)?;
+
+            assert_eq!(new_current_migration, current_id);
+
+            Ok(())
+        });
+    }
+}

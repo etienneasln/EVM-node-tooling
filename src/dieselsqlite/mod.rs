@@ -32,4 +32,3 @@ pub fn establish_connection() -> Result<SqliteConnection, ConnectionError> {
 
     SqliteConnection::establish(database_url)
 }
-

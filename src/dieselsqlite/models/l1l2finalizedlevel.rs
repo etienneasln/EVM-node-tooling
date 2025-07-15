@@ -106,3 +106,94 @@ impl L1L2FinalizedLevel {
         Ok(cleared_rows)
     }
 }
+
+#[cfg(test)]
+mod l1_l2_finalized_level_test {
+    use super::*;
+    use crate::dieselsqlite::{Block, establish_connection};
+    use diesel::result::Error;
+
+    #[test]
+    fn test_l1_l2_finalized_level_all() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            L1L2FinalizedLevel::clear_after(conn, 0)?;
+            let iter = 3;
+            let l1_level_base = 6000;
+            let start_l2_level_base = Block::top_level(conn)?;
+            let span = iter;
+            let end_l2_level_base = start_l2_level_base + span;
+
+            for i in 0..iter {
+                let finalizedlevel = L1L2FinalizedLevel {
+                    l1_level: l1_level_base + i,
+                    start_l2_level: start_l2_level_base + i,
+                    end_l2_level: end_l2_level_base + i,
+                };
+                finalizedlevel.insert(conn)?;
+            }
+
+            let expected_get = (start_l2_level_base, end_l2_level_base);
+
+            let get = L1L2FinalizedLevel::get(conn, l1_level_base)?;
+
+            assert_eq!(get, expected_get);
+
+            let expected_last_l2_level = end_l2_level_base + iter - 1;
+
+            let last_l2_level = L1L2FinalizedLevel::last_l2_level(conn)?;
+
+            assert_eq!(last_l2_level, expected_last_l2_level);
+
+            let expected_last = (
+                l1_level_base + iter - 1,
+                start_l2_level_base + iter - 1,
+                end_l2_level_base + iter - 1,
+            );
+
+            let last = L1L2FinalizedLevel::last(conn)?;
+
+            assert_eq!(last, expected_last);
+
+            let expected_l1_level = l1_level_base + iter - 1;
+
+            let find_l1_level = L1L2FinalizedLevel::find_l1_level(conn, end_l2_level_base)?;
+
+            assert_eq!(find_l1_level, expected_l1_level);
+
+            let expected_list = (0..iter)
+                .map(|i| {
+                    (
+                        l1_level_base + i,
+                        start_l2_level_base + i,
+                        end_l2_level_base + i,
+                    )
+                })
+                .collect::<Vec<(i32, i32, i32)>>();
+
+            let list_by_l2 = L1L2FinalizedLevel::list_by_l2_levels(
+                conn,
+                start_l2_level_base,
+                end_l2_level_base + iter - 1,
+            )?;
+
+            let list_by_l1 = L1L2FinalizedLevel::list_by_l1_levels(
+                conn,
+                l1_level_base,
+                l1_level_base + iter - 1,
+            )?;
+
+            assert_eq!(list_by_l2, expected_list);
+            assert_eq!(list_by_l1, expected_list);
+
+            let expected_clear = iter as usize;
+
+            let clear = L1L2FinalizedLevel::clear_after(conn, end_l2_level_base - 1)?;
+
+            assert_eq!(clear, expected_clear);
+
+            Ok(())
+        })
+    }
+}

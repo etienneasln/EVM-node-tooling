@@ -115,3 +115,63 @@ impl Block {
         Ok(base_level)
     }
 }
+
+#[cfg(test)]
+mod block_test {
+    use super::*;
+    use crate::dieselsqlite::establish_connection;
+    use diesel::result::Error;
+    #[test]
+    fn test_block_insert_selects_clearafter() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            let inserted_hash = "hash".as_bytes().to_vec();
+            let inserted_block = "block".as_bytes().to_vec();
+            let base_insert_index = Block::top_level(conn)?;
+
+            let block = Block {
+                level: base_insert_index + 1,
+                hash: inserted_hash.clone(),
+                block: inserted_block.clone(),
+            };
+
+            let _ = block.insert(conn)?;
+
+            let block_from_level = Block::select_with_level(conn, base_insert_index + 1)?;
+            let hash_of_number = Block::select_hash_of_number(conn, base_insert_index + 1)?;
+            let number_of_hash = Block::select_number_of_hash(conn, &hash_of_number)?;
+            let block_from_hash = Block::select_with_hash(conn, &hash_of_number)?;
+
+            assert_eq!(block_from_level, inserted_block);
+            assert_eq!(hash_of_number, inserted_hash);
+            assert_eq!(number_of_hash, base_insert_index + 1);
+            assert_eq!(block_from_hash, inserted_block);
+
+            let expected_rows_cleared: usize = 1;
+
+            let rows_cleared = Block::clear_after(conn, base_insert_index)?;
+
+            assert_eq!(rows_cleared, expected_rows_cleared);
+            Ok(())
+        })
+    }
+
+    #[test]
+    fn test_block_selects() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            let select_index = Block::top_level(conn)?;
+
+            let block_from_level = Block::select_with_level(conn, select_index)?;
+            let hash_of_number = Block::select_hash_of_number(conn, select_index)?;
+            let number_of_hash = Block::select_number_of_hash(conn, &hash_of_number)?;
+            let block_from_hash = Block::select_with_hash(conn, &hash_of_number)?;
+
+            assert_eq!(block_from_hash, block_from_level);
+            assert_eq!(number_of_hash, select_index);
+            Ok(())
+        })
+    }
+}

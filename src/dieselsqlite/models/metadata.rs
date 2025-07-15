@@ -58,3 +58,35 @@ impl Metadata {
         Ok(returned_value)
     }
 }
+
+#[cfg(test)]
+mod metadata_test {
+    use super::*;
+    use crate::dieselsqlite::establish_connection;
+    use diesel::result::Error;
+
+    #[test]
+    fn test_metadata_insert_select() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            let history_mode = "new history mode";
+
+            Metadata::insert_history_mode(conn, history_mode)?;
+
+            let new_history_mode = Metadata::get_history_mode(conn)?;
+
+            assert_eq!(new_history_mode, history_mode);
+
+            let smart_rollup_node_address = "new smart rollup node address";
+
+            Metadata::insert_smart_rollup_address(conn, smart_rollup_node_address)?;
+
+            let new_smart_rollup_node_address = Metadata::get_smart_rollup_address(conn)?;
+
+            assert_eq!(new_smart_rollup_node_address, smart_rollup_node_address);
+
+            Ok(())
+        })
+    }
+}

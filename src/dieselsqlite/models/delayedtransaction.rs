@@ -59,3 +59,44 @@ impl DelayedTransaction {
         Ok(cleared_rows)
     }
 }
+
+#[cfg(test)]
+mod delayed_transaction_test {
+    use super::*;
+    use crate::dieselsqlite::establish_connection;
+    use diesel::result::Error;
+
+    #[test]
+    fn test_delayed_transaction_all() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            let inserted_injected_before = 5000;
+            let inserted_hash = "hash".as_bytes().to_vec();
+            let inserted_payload = "payload".as_bytes().to_vec();
+
+            let delayed_transaction = DelayedTransaction {
+                injected_before: inserted_injected_before,
+                hash: inserted_hash.clone(),
+                payload: inserted_payload.clone(),
+            };
+
+            delayed_transaction.insert(conn)?;
+
+            let select_payload_at_level =
+                DelayedTransaction::select_at_level(conn, inserted_injected_before)?;
+            let select_payload_at_hash = DelayedTransaction::select_at_hash(conn, &inserted_hash)?;
+
+            assert_eq!(select_payload_at_level, inserted_payload);
+            assert_eq!(select_payload_at_hash, inserted_payload);
+
+            let expected_clear: usize = 1;
+
+            let clear = DelayedTransaction::clear_before(conn, inserted_injected_before + 1)?;
+
+            assert_eq!(clear, expected_clear);
+
+            Ok(())
+        })
+    }
+}

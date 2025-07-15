@@ -57,3 +57,50 @@ impl IrminChunk {
         Ok(cleared_rows)
     }
 }
+
+#[cfg(test)]
+mod irmin_chunk_test {
+    use super::*;
+    use crate::dieselsqlite::{Block, establish_connection};
+    use diesel::result::Error;
+
+    #[test]
+    fn test_irmin_chunk_all() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            IrminChunk::clear(conn)?;
+
+            let iter = 3;
+            let level_base = Block::top_level(conn)?;
+            let timestamp_base = 6000;
+            for i in 0..iter {
+                let chunk = IrminChunk {
+                    level: level_base + i,
+                    timestamp: timestamp_base + i,
+                };
+                chunk.insert(conn)?;
+            }
+
+            let expected_nth = (level_base, timestamp_base);
+
+            let nth = IrminChunk::nth(conn, (iter - 1) as i64)?;
+
+            assert_eq!(nth, expected_nth);
+
+            let expected_latest = (level_base + iter - 1, timestamp_base + iter - 1);
+
+            let latest = IrminChunk::latest(conn)?;
+
+            assert_eq!(latest, expected_latest);
+
+            let expected_clear = iter as usize;
+
+            let clear = IrminChunk::clear_after(conn, level_base - 1)?;
+
+            assert_eq!(clear, expected_clear);
+
+            Ok(())
+        })
+    }
+}
