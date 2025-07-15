@@ -14,8 +14,7 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
    echo DATABASE_URL=/path/to/the/store.sqlite/file > .env
    ```
    The `store.sqlite` is created by the node and located in the node's data directory.  
-3. Install Diesel CLI if not already installed (see [Getting Started with Diesel](https://diesel.rs/guides/getting-started))
-4. Run `diesel setup` in the root directory
+3. (recommended but not mandatory) Install Diesel CLI if not already installed (see [Getting Started with Diesel](https://diesel.rs/guides/getting-started))
 
 ## Running
 
