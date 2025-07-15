@@ -33,14 +33,3 @@ pub fn establish_connection() -> Result<SqliteConnection, ConnectionError> {
     SqliteConnection::establish(database_url)
 }
 
-pub fn set_journal_mode_to_wal(conn: &mut SqliteConnection) -> QueryResult<usize> {
-    diesel::sql_query("PRAGMA journal_mode=WAL;").execute(conn)
-}
-
-pub fn set_synchronous_mode_to_full(conn: &mut SqliteConnection) -> QueryResult<usize> {
-    diesel::sql_query("PRAGMA synchronous = FULL;").execute(conn)
-}
-
-pub fn set_synchronous_mode_to_normal(conn: &mut SqliteConnection) -> QueryResult<usize> {
-    diesel::sql_query("PRAGMA synchronous = NORMAL;").execute(conn)
-}
