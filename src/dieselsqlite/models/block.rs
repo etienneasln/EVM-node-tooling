@@ -1,7 +1,7 @@
-use crate::dieselsqlite::schema::blocks;
-use diesel::{dsl::*, prelude::*, sql_types::Binary};
+use crate::dieselsqlite::{models::cast_hash_comparison, schema::blocks};
+use diesel::{dsl::*, prelude::*};
 
-#[derive(Queryable, Selectable, QueryableByName, Insertable)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {
@@ -13,7 +13,6 @@ pub struct Block {
 impl Block {
     pub fn insert(self, connection: &mut SqliteConnection) -> QueryResult<usize> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let inserted_rows = self.insert_into(blocks).execute(connection)?;
         Ok(inserted_rows)
     }
@@ -23,7 +22,6 @@ impl Block {
         queried_level: i32,
     ) -> QueryResult<Vec<u8>> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let b = blocks
             .find(queried_level)
             .select(block)
@@ -35,10 +33,13 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_hash: &Vec<u8>,
     ) -> QueryResult<Vec<u8>> {
-        let b = sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<Block>(connection)?;
-        Ok(b.block)
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+        let b = blocks
+            .filter(cast_hash_comparison(queried_hash))
+            .select(block)
+            .get_result(connection)?;
+
+        Ok(b)
     }
 
     pub fn select_hash_of_number(
@@ -46,7 +47,6 @@ impl Block {
         queried_level: i32,
     ) -> QueryResult<Vec<u8>> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let h = blocks
             .find(queried_level)
             .select(hash)
@@ -58,10 +58,12 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_hash: &Vec<u8>,
     ) -> QueryResult<i32> {
-        let b = sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<Block>(connection)?;
-        Ok(b.level)
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+        let n = blocks
+            .filter(cast_hash_comparison(queried_hash))
+            .select(level)
+            .get_result(connection)?;
+        Ok(n)
     }
 
     pub fn clear_after(
@@ -69,7 +71,6 @@ impl Block {
         queried_level: i32,
     ) -> QueryResult<usize> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let cleared_rows = delete(blocks.filter(level.gt(queried_level))).execute(connection)?;
         Ok(cleared_rows)
     }
@@ -79,7 +80,6 @@ impl Block {
         queried_level: i32,
     ) -> QueryResult<usize> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let cleared_rows = delete(blocks.filter(level.lt(queried_level))).execute(connection)?;
         Ok(cleared_rows)
     }
@@ -88,14 +88,12 @@ impl Block {
 
     pub fn count(connection: &mut SqliteConnection) -> QueryResult<i64> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let count = blocks.select(count(level)).first(connection)?;
         Ok(count)
     }
 
     pub fn base_level(connection: &mut SqliteConnection) -> QueryResult<i32> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let base_level = blocks
             .select(level)
             .order(level.asc())
@@ -106,7 +104,6 @@ impl Block {
 
     pub fn top_level(connection: &mut SqliteConnection) -> QueryResult<i32> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let base_level = blocks
             .select(level)
             .order(level.desc())
@@ -130,13 +127,13 @@ mod block_test {
             let inserted_block = "block".as_bytes().to_vec();
             let base_insert_index = Block::top_level(conn)?;
 
-            let block = Block {
+            let insert_block = Block {
                 level: base_insert_index + 1,
                 hash: inserted_hash.clone(),
                 block: inserted_block.clone(),
             };
 
-            let _ = block.insert(conn)?;
+            let _ = insert_block.insert(conn)?;
 
             let block_from_level = Block::select_with_level(conn, base_insert_index + 1)?;
             let hash_of_number = Block::select_hash_of_number(conn, base_insert_index + 1)?;
@@ -171,6 +168,7 @@ mod block_test {
 
             assert_eq!(block_from_hash, block_from_level);
             assert_eq!(number_of_hash, select_index);
+
             Ok(())
         })
     }

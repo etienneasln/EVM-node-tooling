@@ -1,7 +1,7 @@
-use crate::dieselsqlite::schema::transactions;
-use diesel::{dsl::*, prelude::*, sql_query, sql_types::Binary};
+use crate::dieselsqlite::{models::cast_hash_comparison, schema::transactions};
+use diesel::{dsl::*, prelude::*};
 
-#[derive(Queryable, Selectable, Insertable, QueryableByName)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Transaction {
@@ -34,18 +34,20 @@ impl Transaction {
         Option<Vec<u8>>,
         Vec<u8>,
     )> {
-        let receipt = sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<Transaction>(connection)?;
-        Ok((
-            receipt.block_hash,
-            receipt.block_number,
-            receipt.index_,
-            receipt.hash,
-            receipt.from_,
-            receipt.to_,
-            receipt.receipt_fields,
-        ))
+        use crate::dieselsqlite::schema::transactions::dsl::*;
+        let (block_h, block_n, index, h, from, to, receipt_f) = transactions
+            .filter(cast_hash_comparison(queried_hash))
+            .select((
+                block_hash,
+                block_number,
+                index_,
+                hash,
+                from_,
+                to_,
+                receipt_fields,
+            ))
+            .get_result(connection)?;
+        Ok((block_h, block_n, index, h, from, to, receipt_f))
     }
 
     pub fn select_receipts_from_block_number(
@@ -72,18 +74,20 @@ impl Transaction {
         Option<Vec<u8>>,
         Vec<u8>,
     )> {
-        let object = sql_query("SELECT * FROM transactions WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<Transaction>(connection)?;
-        Ok((
-            object.block_hash,
-            object.block_number,
-            object.index_,
-            object.hash,
-            object.from_,
-            object.to_,
-            object.object_fields,
-        ))
+        use crate::dieselsqlite::schema::transactions::dsl::*;
+        let (block_h, block_n, index, h, from, to, object_f) = transactions
+            .filter(cast_hash_comparison(queried_hash))
+            .select((
+                block_hash,
+                block_number,
+                index_,
+                hash,
+                from_,
+                to_,
+                object_fields,
+            ))
+            .get_result(connection)?;
+        Ok((block_h, block_n, index, h, from, to, object_f))
     }
 
     pub fn select_objects_from_block_number(

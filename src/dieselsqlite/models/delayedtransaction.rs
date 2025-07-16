@@ -1,7 +1,7 @@
-use crate::dieselsqlite::schema::delayed_transactions;
-use diesel::{dsl::*, prelude::*, sql_types::Binary};
+use crate::dieselsqlite::{models::cast_hash_comparison, schema::delayed_transactions};
+use diesel::{dsl::*, prelude::*};
 
-#[derive(Queryable, Selectable, Insertable, QueryableByName)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = delayed_transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DelayedTransaction {
@@ -33,10 +33,13 @@ impl DelayedTransaction {
         connection: &mut SqliteConnection,
         queried_hash: &Vec<u8>,
     ) -> QueryResult<Vec<u8>> {
-        let dt = sql_query("SELECT * FROM delayed_transactions WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<DelayedTransaction>(connection)?;
-        Ok(dt.payload)
+        use crate::dieselsqlite::schema::delayed_transactions::dsl::*;
+
+        let pld = delayed_transactions
+            .filter(cast_hash_comparison(queried_hash))
+            .select(payload)
+            .get_result(connection)?;
+        Ok(pld)
     }
 
     pub fn clear_after(
