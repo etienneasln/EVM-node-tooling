@@ -27,3 +27,7 @@ pub use migration::*;
 pub use pendingconfirmation::*;
 pub use sequencerupgrade::*;
 pub use transaction::*;
+
+use diesel::{define_sql_function, sql_types::Binary};
+
+define_sql_function!{fn cast(hash:Binary)->Text;}
