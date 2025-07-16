@@ -1,7 +1,7 @@
 use crate::dieselsqlite::{models::cast_hash_comparison, schema::delayed_transactions};
 use diesel::{dsl::*, prelude::*};
 
-#[derive(Queryable, Selectable, Insertable, QueryableByName)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = delayed_transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct DelayedTransaction {

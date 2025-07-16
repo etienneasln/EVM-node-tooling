@@ -1,7 +1,7 @@
 use crate::dieselsqlite::{models::cast_hash_comparison, schema::blocks};
 use diesel::{dsl::*, prelude::*};
 
-#[derive(Queryable, Selectable, QueryableByName, Insertable)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = blocks)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Block {

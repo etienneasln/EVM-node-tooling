@@ -1,7 +1,7 @@
 use crate::dieselsqlite::{models::cast_hash_comparison, schema::transactions};
 use diesel::{dsl::*, prelude::*};
 
-#[derive(Queryable, Selectable, Insertable, QueryableByName)]
+#[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Transaction {
