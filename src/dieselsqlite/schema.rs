@@ -128,3 +128,14 @@ diesel::table! {
         object_fields-> Binary,
     }
 }
+
+diesel::table! {
+    sqlite_schema (row_id){
+        row_id->Integer,
+        type_->Text,
+        name->Text,
+        tbl_name->Text,
+        rootpage->Integer,
+        sql->Text,
+    }
+}
