@@ -9,12 +9,11 @@ EVM-node-tooling is a Rust library for the interaction of the EVM node with its 
    ```
    ./octez-evm-node run observer   --network mainnet   --history rolling:1   --dont-track-rollup-node   --init-from-snapshot --data-dir ./local_test --profiling
    ```  
-2. Run the following command in the repository's root directory to make the DATABASE_URL environment variable point to the store.sqlite file. If this step isn't done then an empty `store.sqlite` database (with no tables) will be created in the repository's root directory when the first tests or benchmarks are ran:
+2. (optional) Run the following command in the repository's root directory to provide a default DATABASE_URL environment variable pointing to the store.sqlite file. If this step isn't done, then you will have to provide the DATABASE_URL environment variable when running binaries (including benchmarks and tests). If no path to the database is provided, then the binaries will panic:
    ```
    echo DATABASE_URL=/path/to/the/store.sqlite/file > .env
    ```
    The `store.sqlite` is created by the node and located in the node's data directory.  
-3. (recommended but not mandatory) Install Diesel CLI if not already installed (see [Getting Started with Diesel](https://diesel.rs/guides/getting-started))
 
 ## Running
 
