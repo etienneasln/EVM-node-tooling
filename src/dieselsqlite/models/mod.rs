@@ -28,6 +28,11 @@ pub use pendingconfirmation::*;
 pub use sequencerupgrade::*;
 pub use transaction::*;
 
-use diesel::{define_sql_function, sql_types::Binary};
+use diesel::{dsl::sql, expression::{AsExpression, SqlLiteral, UncheckedBind},sql_types::{Binary, Bool}};
 
-define_sql_function!{fn cast(hash:Binary)->Text;}
+const CASTINGLITERALSQL:&str="CAST(hash as BLOB) = ";
+
+pub fn cast_hash_comparison(queried_hash:&Vec<u8>)-> UncheckedBind<SqlLiteral<Bool>,  <&Vec<u8> as AsExpression<Binary>>::Expression>{
+    sql(CASTINGLITERALSQL).bind::<Binary, &Vec<u8>>(queried_hash)
+}
+
