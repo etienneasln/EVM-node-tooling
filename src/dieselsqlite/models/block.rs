@@ -1,4 +1,4 @@
-use crate::dieselsqlite::schema::blocks;
+use crate::dieselsqlite::{models::cast, schema::blocks};
 use diesel::{dsl::*, prelude::*, sql_types::Binary};
 
 #[derive(Queryable, Selectable, QueryableByName, Insertable)]
@@ -13,7 +13,6 @@ pub struct Block {
 impl Block {
     pub fn insert(self, connection: &mut SqliteConnection) -> QueryResult<usize> {
         use crate::dieselsqlite::schema::blocks::dsl::*;
-
         let inserted_rows = self.insert_into(blocks).execute(connection)?;
         Ok(inserted_rows)
     }
@@ -35,10 +34,15 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_hash: &Vec<u8>,
     ) -> QueryResult<Vec<u8>> {
-        let b = sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<Block>(connection)?;
-        Ok(b.block)
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+        let b=blocks
+            .filter(hash.eq(queried_hash))
+            .select(block)
+            .get_result(connection)?;
+        // let b = sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
+        //     .bind::<Binary, _>(queried_hash)
+        //     .get_result::<Block>(connection)?;
+        Ok(b)
     }
 
     pub fn select_hash_of_number(
@@ -58,10 +62,12 @@ impl Block {
         connection: &mut SqliteConnection,
         queried_hash: &Vec<u8>,
     ) -> QueryResult<i32> {
-        let b = sql_query("SELECT * FROM blocks WHERE CAST(hash as BLOB)=?1")
-            .bind::<Binary, _>(queried_hash)
-            .get_result::<Block>(connection)?;
-        Ok(b.level)
+        use crate::dieselsqlite::schema::blocks::dsl::*;
+        let n=blocks
+            .filter(hash.eq(queried_hash))
+            .select(level)
+            .get_result(connection)?;
+        Ok(n)
     }
 
     pub fn clear_after(
@@ -168,9 +174,12 @@ mod block_test {
             let hash_of_number = Block::select_hash_of_number(conn, select_index)?;
             let number_of_hash = Block::select_number_of_hash(conn, &hash_of_number)?;
             let block_from_hash = Block::select_with_hash(conn, &hash_of_number)?;
+            println!("{:?}", hash_of_number);
+            println!("{:?}", block_from_hash);
 
             assert_eq!(block_from_hash, block_from_level);
             assert_eq!(number_of_hash, select_index);
+            // assert_eq!(0,1);
             Ok(())
         })
     }
