@@ -30,11 +30,16 @@ pub use schema::*;
 pub use sequencerupgrade::*;
 pub use transaction::*;
 
-use diesel::{dsl::sql, expression::{AsExpression, SqlLiteral, UncheckedBind},sql_types::{Binary, Bool}};
+use diesel::{
+    dsl::sql,
+    expression::{AsExpression, SqlLiteral, UncheckedBind},
+    sql_types::{Binary, Bool},
+};
 
-const CASTINGLITERALSQL:&str="CAST(hash as BLOB) = ";
+const CASTINGLITERALSQL: &str = "CAST(hash as BLOB) = ";
 
-pub fn cast_hash_comparison(queried_hash:&Vec<u8>)-> UncheckedBind<SqlLiteral<Bool>,  <&Vec<u8> as AsExpression<Binary>>::Expression>{
+pub fn cast_hash_comparison(
+    queried_hash: &Vec<u8>,
+) -> UncheckedBind<SqlLiteral<Bool>, <&Vec<u8> as AsExpression<Binary>>::Expression> {
     sql(CASTINGLITERALSQL).bind::<Binary, &Vec<u8>>(queried_hash)
 }
-

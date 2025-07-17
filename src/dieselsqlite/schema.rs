@@ -132,7 +132,8 @@ diesel::table! {
 diesel::table! {
     sqlite_schema (row_id){
         row_id->Integer,
-        type_->Text,
+        #[sql_name = "type"]
+        schema_type->Text,
         name->Text,
         tbl_name->Text,
         rootpage->Integer,
