@@ -88,7 +88,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    blueprints (id) {
+    blueprints {
         id -> Integer,
         payload -> Binary,
         timestamp -> Integer,
@@ -96,14 +96,14 @@ diesel::table! {
 }
 
 diesel::table! {
-    context_hashes (id) {
+    context_hashes {
         id -> Integer,
         context_hash -> Binary,
     }
 }
 
 diesel::table! {
-    migrations (id){
+    migrations {
         id->Integer,
         name->Nullable<Text>,
     }
