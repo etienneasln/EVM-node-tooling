@@ -15,15 +15,12 @@ pub struct Schema {
 impl Schema {
     pub fn get_all(connection: &mut SqliteConnection) -> QueryResult<Vec<String>> {
         let schemas = sql_query(
-            "SELECT * FROM sqlite_schema
+            "SELECT type AS schema_type,name,tbl_name,rootpage,sql FROM sqlite_schema
              WHERE name NOT LIKE 'sqlite_%' AND name != 'migrations'",
         )
         .load::<Schema>(connection)?;
-        // let schemas=sqlite_schema
-        //     .filter(name.not_like("sqlite_%").and(name.ne("migrations")))
-        //     .select(sql)
-        //     .load(connection)?;
         let sqls = schemas.into_iter().map(|s| s.sql).collect::<Vec<String>>();
+        
         Ok(sqls)
     }
 }
@@ -32,24 +29,17 @@ impl Schema {
 mod schema_test {
     use super::*;
     use crate::dieselsqlite::establish_connection;
-    use crate::dieselsqlite::schema::sqlite_schema::dsl::*;
-    use diesel::{debug_query, result::Error, sqlite::Sqlite};
+    use diesel::result::Error;
 
     #[test]
     fn test_schema() {
         let connection = &mut establish_connection().unwrap();
 
         connection.test_transaction::<_, Error, _>(|conn| {
-            println!(
-                "{:?}",
-                debug_query::<Sqlite, _>(
-                    &sqlite_schema
-                        .filter(name.not_like("sqlite_%").and(name.ne("migrations")))
-                        .select(sql)
-                )
-            );
-            println!("Get_all:{:?}", Schema::get_all(conn).unwrap());
-            assert_eq!(0, 1);
+            let schema=Schema::get_all(conn).unwrap();
+
+            let create_in_string=schema.iter().any(|s|s.contains("CREATE"));
+            assert!(create_in_string);
             Ok(())
         })
     }
