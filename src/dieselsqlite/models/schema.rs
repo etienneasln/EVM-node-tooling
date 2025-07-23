@@ -1,5 +1,5 @@
 use crate::dieselsqlite::schema::sqlite_schema;
-use diesel::{prelude::*, sql_query};
+use diesel::{prelude::*, sql_query, sql_types::Text};
 
 #[derive(Queryable, Selectable, QueryableByName)]
 #[diesel(table_name = sqlite_schema)]
@@ -20,8 +20,19 @@ impl Schema {
         )
         .load::<Schema>(connection)?;
         let sqls = schemas.into_iter().map(|s| s.sql).collect::<Vec<String>>();
-        
+
         Ok(sqls)
+    }
+
+    pub fn table_exists(connection: &mut SqliteConnection, table_name: &str) -> QueryResult<bool> {
+        let schema_option = sql_query(
+            "SELECT type AS schema_type,name,tbl_name,rootpage,sql FROM sqlite_schema
+             WHERE schema_type='table' AND name = ?",
+        )
+        .bind::<Text, _>(table_name)
+        .get_result::<Schema>(connection)
+        .optional()?;
+        Ok(schema_option.is_some())
     }
 }
 
@@ -36,10 +47,16 @@ mod schema_test {
         let connection = &mut establish_connection().unwrap();
 
         connection.test_transaction::<_, Error, _>(|conn| {
-            let schema=Schema::get_all(conn).unwrap();
+            let schema = Schema::get_all(conn).unwrap();
 
-            let create_in_string=schema.iter().any(|s|s.contains("CREATE"));
+            let create_in_string = schema.iter().any(|s| s.contains("CREATE"));
             assert!(create_in_string);
+
+            let blocks_exists = Schema::table_exists(conn, "blocks").unwrap();
+            let no_table_exists = Schema::table_exists(conn, "no table").unwrap();
+
+            assert!(blocks_exists);
+            assert!(!no_table_exists);
             Ok(())
         })
     }
