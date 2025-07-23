@@ -131,6 +131,7 @@ diesel::table! {
 
 diesel::table! {
     sqlite_schema (name){
+        #[sql_name = "type"]
         schema_type->Text,
         name->Text,
         tbl_name->Text,

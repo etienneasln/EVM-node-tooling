@@ -23,7 +23,7 @@ fn test_apply_blueprint_iterations() {
 
         let context_hash_vector = ContextHash::select(conn, select_index)?;
 
-        for _i in 0..iter {
+        for _ in 0..iter {
             let insert_index = Blueprint::top_level(conn)? + 1;
 
             let blueprint = Blueprint {

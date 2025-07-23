@@ -1,5 +1,8 @@
 use crate::dieselsqlite::schema::sqlite_schema;
-use diesel::{prelude::*, sql_query, sql_types::Text};
+use diesel::{
+    dsl::{exists, select},
+    prelude::*,
+};
 
 #[derive(Queryable, Selectable, QueryableByName)]
 #[diesel(table_name = sqlite_schema)]
@@ -14,25 +17,21 @@ pub struct Schema {
 
 impl Schema {
     pub fn get_all(connection: &mut SqliteConnection) -> QueryResult<Vec<String>> {
-        let schemas = sql_query(
-            "SELECT type AS schema_type,name,tbl_name,rootpage,sql FROM sqlite_schema
-             WHERE name NOT LIKE 'sqlite_%' AND name != 'migrations'",
-        )
-        .load::<Schema>(connection)?;
-        let sqls = schemas.into_iter().map(|s| s.sql).collect::<Vec<String>>();
-
+        use crate::dieselsqlite::schema::sqlite_schema::dsl::*;
+        let sqls = sqlite_schema
+            .filter(name.not_like("sqlite_%").and(name.ne("migrations")))
+            .select(sql)
+            .load(connection)?;
         Ok(sqls)
     }
 
     pub fn table_exists(connection: &mut SqliteConnection, table_name: &str) -> QueryResult<bool> {
-        let schema_option = sql_query(
-            "SELECT type AS schema_type,name,tbl_name,rootpage,sql FROM sqlite_schema
-             WHERE schema_type='table' AND name = ?",
-        )
-        .bind::<Text, _>(table_name)
-        .get_result::<Schema>(connection)
-        .optional()?;
-        Ok(schema_option.is_some())
+        use crate::dieselsqlite::schema::sqlite_schema::dsl::*;
+        let exists_bool = select(exists(
+            sqlite_schema.filter(schema_type.eq("table").and(name.eq(table_name))),
+        ))
+        .get_result(connection)?;
+        Ok(exists_bool)
     }
 }
 
