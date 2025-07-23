@@ -10,6 +10,7 @@ mod l1l2levelrelationship;
 mod metadata;
 mod migration;
 mod pendingconfirmation;
+mod schema;
 mod sequencerupgrade;
 mod transaction;
 
@@ -26,6 +27,7 @@ pub use metadata::*;
 pub use migration::*;
 pub use pendingconfirmation::*;
 pub use sequencerupgrade::*;
+pub use schema::*;
 pub use transaction::*;
 
 use diesel::{
