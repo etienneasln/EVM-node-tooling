@@ -133,6 +133,12 @@ enum SqlResponse {
     CurrentMigrationId {
         id: i32,
     },
+    Schemas {
+        sqls: Vec<String>,
+    },
+    TableExists {
+        table_exists: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -445,6 +451,15 @@ async fn answer_query(query: web::Json<Sqlquery>) -> Result<impl Responder, Serv
         "current_migration" => {
             let id = Migration::current_migration(connection)?;
             SqlResponse::CurrentMigrationId { id }
+        }
+        "get_all" => {
+            let sqls = Schema::get_all(connection)?;
+            SqlResponse::Schemas { sqls }
+        }
+        "table_exists" => {
+            let table_name: String = extract_parameter(&query.params[0])?;
+            let table_exists = Schema::table_exists(connection, &table_name)?;
+            SqlResponse::TableExists { table_exists }
         }
         _ => {
             return Err(ServerError::UnknownMethod {
