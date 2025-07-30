@@ -7,7 +7,7 @@ use diesel::{dsl::*, prelude::*};
 pub struct KernelUpgrade {
     pub injected_before: i32,
     pub root_hash: Vec<u8>,
-    pub activation_timestamp: i32,
+    pub activation_timestamp: i64,
     pub applied_before: Option<i32>,
 }
 
@@ -34,7 +34,7 @@ impl KernelUpgrade {
 
     pub fn get_latest_unapplied(
         connection: &mut SqliteConnection,
-    ) -> QueryResult<(i32, Vec<u8>, i32)> {
+    ) -> QueryResult<(i32, Vec<u8>, i64)> {
         let latest_unapplied = kernel_upgrades
             .filter(applied_before.is_null())
             .select((injected_before, root_hash, activation_timestamp))
@@ -47,7 +47,7 @@ impl KernelUpgrade {
     pub fn find_injected_before(
         connection: &mut SqliteConnection,
         queried_level: i32,
-    ) -> QueryResult<(Vec<u8>, i32)> {
+    ) -> QueryResult<(Vec<u8>, i64)> {
         let result = kernel_upgrades
             .filter(injected_before.eq(queried_level))
             .select((root_hash, activation_timestamp))
@@ -58,7 +58,7 @@ impl KernelUpgrade {
     pub fn find_latest_injected_after(
         connection: &mut SqliteConnection,
         queried_level: i32,
-    ) -> QueryResult<(Vec<u8>, i32)> {
+    ) -> QueryResult<(Vec<u8>, i64)> {
         let latest_injected_after = kernel_upgrades
             .filter(injected_before.gt(queried_level))
             .select((root_hash, activation_timestamp))
@@ -122,7 +122,7 @@ mod kernel_upgrade_test {
             for i in 0..iter {
                 let inserted_injected_before = injected_before_base + i;
                 let inserted_root_hash = format!("root_hash {}", i).as_bytes().to_vec();
-                let inserted_activation_timestamp = i;
+                let inserted_activation_timestamp = i64::from(i);
                 let inserted_applied_before = None;
 
                 let kernel_upgrade = KernelUpgrade {
@@ -145,7 +145,7 @@ mod kernel_upgrade_test {
 
             let inserted_injected_before = injected_before_base + iter;
             let inserted_root_hash = format!("root_hash {}", iter).as_bytes().to_vec();
-            let inserted_activation_timestamp = iter;
+            let inserted_activation_timestamp = i64::from(iter);
             let inserted_applied_before = None;
 
             let kernel_upgrade = KernelUpgrade {

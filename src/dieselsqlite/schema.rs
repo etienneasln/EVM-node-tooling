@@ -20,7 +20,7 @@ diesel::table! {
     irmin_chunks (rowid) {
         rowid -> Integer,
         level -> Integer,
-        timestamp -> Integer,
+        timestamp -> BigInt,
     }
 }
 
@@ -29,7 +29,7 @@ diesel::table! {
         rowid -> Integer,
         injected_before -> Integer,
         root_hash -> Binary,
-        activation_timestamp -> Integer,
+        activation_timestamp -> BigInt,
         applied_before -> Nullable<Integer>,
     }
 }
@@ -62,7 +62,7 @@ diesel::table! {
         injected_before -> Integer,
         sequencer -> Binary,
         pool_address -> Binary,
-        activation_timestamp -> Integer,
+        activation_timestamp -> BigInt,
         applied_before -> Nullable<Integer>,
     }
 }
@@ -91,7 +91,7 @@ diesel::table! {
     blueprints {
         id -> Integer,
         payload -> Binary,
-        timestamp -> Integer,
+        timestamp -> BigInt,
     }
 }
 

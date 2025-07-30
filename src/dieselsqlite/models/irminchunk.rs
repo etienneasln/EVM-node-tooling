@@ -6,7 +6,7 @@ use diesel::{dsl::*, prelude::*};
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct IrminChunk {
     pub level: i32,
-    pub timestamp: i32,
+    pub timestamp: i64,
 }
 
 impl IrminChunk {
@@ -15,7 +15,7 @@ impl IrminChunk {
         Ok(inserted_rows)
     }
 
-    pub fn nth(connection: &mut SqliteConnection, offset: i64) -> QueryResult<(i32, i32)> {
+    pub fn nth(connection: &mut SqliteConnection, offset: i64) -> QueryResult<(i32, i64)> {
         let nth = irmin_chunks
             .select((level, timestamp))
             .order_by(level.desc())
@@ -25,7 +25,7 @@ impl IrminChunk {
         Ok(nth)
     }
 
-    pub fn latest(connection: &mut SqliteConnection) -> QueryResult<(i32, i32)> {
+    pub fn latest(connection: &mut SqliteConnection) -> QueryResult<(i32, i64)> {
         let latest = irmin_chunks
             .select((level, timestamp))
             .order_by(level.desc())
@@ -73,22 +73,22 @@ mod irmin_chunk_test {
 
             let iter = 3;
             let level_base = Block::top_level(conn)?;
-            let timestamp_base = 6000;
+            let timestamp_base = i64::from(6000);
             for i in 0..iter {
                 let chunk = IrminChunk {
                     level: level_base + i,
-                    timestamp: timestamp_base + i,
+                    timestamp: timestamp_base + i64::from(i),
                 };
                 chunk.insert(conn)?;
             }
 
             let expected_nth = (level_base, timestamp_base);
 
-            let nth = IrminChunk::nth(conn, (iter - 1) as i64)?;
+            let nth = IrminChunk::nth(conn, i64::from(iter - 1) )?;
 
             assert_eq!(nth, expected_nth);
 
-            let expected_latest = (level_base + iter - 1, timestamp_base + iter - 1);
+            let expected_latest = (level_base + iter - 1, timestamp_base + i64::from(iter) - 1);
 
             let latest = IrminChunk::latest(conn)?;
 

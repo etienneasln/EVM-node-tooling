@@ -7,14 +7,14 @@ use diesel::{dsl::*, prelude::*};
 pub struct Blueprint {
     pub id: i32,
     pub payload: Vec<u8>,
-    pub timestamp: i32,
+    pub timestamp: i64,
 }
 
 impl Blueprint {
     pub fn select(
         connection: &mut SqliteConnection,
         queried_id: i32,
-    ) -> QueryResult<(Vec<u8>, i32)> {
+    ) -> QueryResult<(Vec<u8>, i64)> {
         let tuple = blueprints
             .find(queried_id)
             .select((payload, timestamp))

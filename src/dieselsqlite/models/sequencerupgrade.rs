@@ -8,7 +8,7 @@ pub struct SequencerUpgrade {
     pub injected_before: i32,
     pub sequencer: Vec<u8>,
     pub pool_address: Vec<u8>,
-    pub activation_timestamp: i32,
+    pub activation_timestamp: i64,
     pub applied_before: Option<i32>,
 }
 
@@ -36,7 +36,7 @@ impl SequencerUpgrade {
 
     pub fn get_latest_unapplied(
         connection: &mut SqliteConnection,
-    ) -> QueryResult<(i32, Vec<u8>, Vec<u8>, i32)> {
+    ) -> QueryResult<(i32, Vec<u8>, Vec<u8>, i64)> {
         let latest_unapplied = sequencer_upgrades
             .filter(applied_before.is_null())
             .select((
@@ -54,7 +54,7 @@ impl SequencerUpgrade {
     pub fn find_injected_before(
         connection: &mut SqliteConnection,
         queried_level: i32,
-    ) -> QueryResult<(Vec<u8>, Vec<u8>, i32)> {
+    ) -> QueryResult<(Vec<u8>, Vec<u8>, i64)> {
         let result = sequencer_upgrades
             .filter(injected_before.eq(queried_level))
             .select((sequencer, pool_address, activation_timestamp))
@@ -65,7 +65,7 @@ impl SequencerUpgrade {
     pub fn find_latest_injected_after(
         connection: &mut SqliteConnection,
         queried_level: i32,
-    ) -> QueryResult<(Vec<u8>, Vec<u8>, i32)> {
+    ) -> QueryResult<(Vec<u8>, Vec<u8>, i64)> {
         let latest_injected_after = sequencer_upgrades
             .filter(injected_before.gt(queried_level))
             .select((sequencer, pool_address, activation_timestamp))
@@ -131,7 +131,7 @@ mod sequencer_upgrade_test {
                 let inserted_injected_before = injected_before_base + i;
                 let inserted_sequencer = format!("sequencer {}", i).as_bytes().to_vec();
                 let inserted_pool_address = format!("pool_address {}", i).as_bytes().to_vec();
-                let inserted_activation_timestamp = i;
+                let inserted_activation_timestamp = i64::from(i);
                 let inserted_applied_before = None;
 
                 let sequencer_upgrade = SequencerUpgrade {
@@ -156,7 +156,7 @@ mod sequencer_upgrade_test {
             let inserted_injected_before = injected_before_base + iter;
             let inserted_sequencer = format!("sequencer {}", iter).as_bytes().to_vec();
             let inserted_pool_address = format!("pool_address {}", iter).as_bytes().to_vec();
-            let inserted_activation_timestamp = iter;
+            let inserted_activation_timestamp = i64::from(iter);
             let inserted_applied_before = None;
 
             let sequencer_upgrade = SequencerUpgrade {

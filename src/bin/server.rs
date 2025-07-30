@@ -21,7 +21,7 @@ struct Sqlquery {
 enum SqlResponse {
     Blueprint {
         payload: Vec<u8>,
-        timestamp: i32,
+        timestamp: i64,
     },
     BlueprintRange {
         idandpayloads: Vec<(i32, Vec<u8>)>,
@@ -84,22 +84,22 @@ enum SqlResponse {
     KernelUpgradeLatestUnapplied {
         injected_before: i32,
         root_hash: Vec<u8>,
-        activation_timestamp: i32,
+        activation_timestamp: i64,
     },
     KernelUpgradeInjected {
         root_hash: Vec<u8>,
-        activation_timestamp: i32,
+        activation_timestamp: i64,
     },
     SequencerUpgradeLatestUnapplied {
         injected_before: i32,
         sequencer: Vec<u8>,
         pool_address: Vec<u8>,
-        activation_timestamp: i32,
+        activation_timestamp: i64,
     },
     SequencerUpgradeInjected {
         sequencer: Vec<u8>,
         pool_address: Vec<u8>,
-        activation_timestamp: i32,
+        activation_timestamp: i64,
     },
     DelayedTransactionSelect {
         payload: Vec<u8>,
@@ -125,7 +125,7 @@ enum SqlResponse {
     },
     IrminChunk {
         level: i32,
-        timestamp: i32,
+        timestamp: i64,
     },
     BlockStorageMode {
         legacy: i32,
