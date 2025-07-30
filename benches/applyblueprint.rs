@@ -27,7 +27,7 @@ fn run_insert_blueprint(
     connection: &mut SqliteConnection,
     id: &mut i32,
     payload: &Vec<u8>,
-    timestamp: i32,
+    timestamp: i64,
 ) {
     let blueprint = Blueprint {
         id: *id,
@@ -90,7 +90,7 @@ fn criterion_insert_transactions(c: &mut Criterion) {
     connection
         .transaction::<_, Error, _>(|conn| {
             c.bench_function("step Insert transactions", |b| {
-                b.iter(|| run_insert_transaction(conn, &transactions, &mut insert_id, bytes))
+                b.iter(|| run_insert_transactions(conn, &transactions, &mut insert_id, bytes))
             });
             let _ = Transaction::clear_after(conn, clear_id);
             Ok(())
@@ -98,7 +98,7 @@ fn criterion_insert_transactions(c: &mut Criterion) {
         .unwrap();
 }
 
-fn run_insert_transaction(
+fn run_insert_transactions(
     connection: &mut SqliteConnection,
     transactions: &Vec<(Vec<u8>, i32, Vec<u8>, Option<Vec<u8>>, Vec<u8>, Vec<u8>)>,
     insert_id: &mut i32,
@@ -106,9 +106,7 @@ fn run_insert_transaction(
 ) {
     let transactions = generate_transactions_with_hash(transactions, *insert_id, bytes);
 
-    for tx in transactions {
-        let _ = tx.insert(connection);
-    }
+    let _ = Transaction::batch_insert(&transactions, connection);
 
     *insert_id += 1;
 }
@@ -200,7 +198,7 @@ fn run_apply_blueprint(
     connection: &mut SqliteConnection,
     insert_id: &mut i32,
     payload: &Vec<u8>,
-    timestamp: i32,
+    timestamp: i64,
     block: &Vec<u8>,
     transactions: &Vec<(Vec<u8>, i32, Vec<u8>, Option<Vec<u8>>, Vec<u8>, Vec<u8>)>,
     context_hash: &Vec<u8>,
@@ -223,9 +221,7 @@ fn run_apply_blueprint(
             };
             block.insert(conn)?;
             let transactions = generate_transactions_with_hash(&transactions, *insert_id, bytes);
-            for tx in transactions {
-                tx.insert(conn)?;
-            }
+            Transaction::batch_insert(&transactions, conn)?;
             let context_hash = ContextHash {
                 id: *insert_id,
                 context_hash: context_hash.clone(),

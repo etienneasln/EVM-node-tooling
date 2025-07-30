@@ -1,4 +1,7 @@
-use crate::dieselsqlite::{models::cast_hash_comparison, schema::transactions};
+use crate::dieselsqlite::{
+    models::cast_hash_comparison,
+    schema::{transactions, transactions::dsl::*},
+};
 use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
@@ -17,8 +20,17 @@ pub struct Transaction {
 
 impl Transaction {
     pub fn insert(self, connection: &mut SqliteConnection) -> QueryResult<usize> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let inserted_rows = self.insert_into(transactions).execute(connection)?;
+        Ok(inserted_rows)
+    }
+
+    pub fn batch_insert(
+        batch: &Vec<Self>,
+        connection: &mut SqliteConnection,
+    ) -> QueryResult<usize> {
+        let inserted_rows = insert_into(transactions)
+            .values(batch)
+            .execute(connection)?;
         Ok(inserted_rows)
     }
 
@@ -34,7 +46,6 @@ impl Transaction {
         Option<Vec<u8>>,
         Vec<u8>,
     )> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let (block_h, block_n, index, h, from, to, receipt_f) = transactions
             .filter(cast_hash_comparison(queried_hash))
             .select((
@@ -54,7 +65,6 @@ impl Transaction {
         connection: &mut SqliteConnection,
         queried_block_number: i32,
     ) -> QueryResult<Vec<(Vec<u8>, i32, Vec<u8>, Vec<u8>, Option<Vec<u8>>, Vec<u8>)>> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let receipts = transactions
             .filter(block_number.eq(queried_block_number))
             .select((block_hash, index_, hash, from_, to_, receipt_fields))
@@ -74,7 +84,6 @@ impl Transaction {
         Option<Vec<u8>>,
         Vec<u8>,
     )> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let (block_h, block_n, index, h, from, to, object_f) = transactions
             .filter(cast_hash_comparison(queried_hash))
             .select((
@@ -94,7 +103,6 @@ impl Transaction {
         connection: &mut SqliteConnection,
         queried_block_number: i32,
     ) -> QueryResult<Vec<(i32, Vec<u8>, Vec<u8>, Option<Vec<u8>>, Vec<u8>)>> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let objects = transactions
             .filter(block_number.eq(queried_block_number))
             .select((index_, hash, from_, to_, object_fields))
@@ -106,7 +114,6 @@ impl Transaction {
         connection: &mut SqliteConnection,
         queried_block_number: i32,
     ) -> QueryResult<usize> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let cleared_rows = delete(transactions.filter(block_number.gt(queried_block_number)))
             .execute(connection)?;
         Ok(cleared_rows)
@@ -116,7 +123,6 @@ impl Transaction {
         connection: &mut SqliteConnection,
         queried_block_number: i32,
     ) -> QueryResult<usize> {
-        use crate::dieselsqlite::schema::transactions::dsl::*;
         let cleared_rows = delete(transactions.filter(block_number.lt(queried_block_number)))
             .execute(connection)?;
         Ok(cleared_rows)
@@ -156,16 +162,23 @@ mod transaction_test {
 
             let _ = transaction.insert(conn);
 
-            let (block_hash, block_number, index_, hash, from_, to_, receipt_fields) =
-                Transaction::select_receipt(conn, &inserted_hash)?;
+            let (
+                select_block_hash,
+                select_block_number,
+                select_index_,
+                select_hash,
+                select_from_,
+                select_to_,
+                select_receipt_fields,
+            ) = Transaction::select_receipt(conn, &inserted_hash)?;
 
-            assert_eq!(block_hash, inserted_block_hash);
-            assert_eq!(block_number, inserted_block_number);
-            assert_eq!(index_, inserted_index_);
-            assert_eq!(hash, inserted_hash);
-            assert_eq!(from_, inserted_from_);
-            assert_eq!(to_, inserted_to_);
-            assert_eq!(receipt_fields, inserted_receipt_fields);
+            assert_eq!(select_block_hash, inserted_block_hash);
+            assert_eq!(select_block_number, inserted_block_number);
+            assert_eq!(select_index_, inserted_index_);
+            assert_eq!(select_hash, inserted_hash);
+            assert_eq!(select_from_, inserted_from_);
+            assert_eq!(select_to_, inserted_to_);
+            assert_eq!(select_receipt_fields, inserted_receipt_fields);
 
             let expected_rows_cleared = 1;
 
@@ -194,22 +207,76 @@ mod transaction_test {
                     (&receipts[i]).clone();
                 let (_, _, _, _, vec_object_fields) = (&objects[i]).clone();
 
-                let (block_hash, block_number, index_, hash, from_, to_, receipt_fields) =
-                    Transaction::select_receipt(conn, &vec_hash)?;
-                let (_, _, _, _, _, _, object_fields) =
+                let (
+                    select_block_hash,
+                    select_block_number,
+                    select_index_,
+                    select_hash,
+                    select_from_,
+                    select_to_,
+                    select_receipt_fields,
+                ) = Transaction::select_receipt(conn, &vec_hash)?;
+                let (_, _, _, _, _, _, select_object_fields) =
                     Transaction::select_object(conn, &vec_hash)?;
 
-                assert_eq!(block_hash, vec_block_hash);
-                assert_eq!(block_number, select_block_level);
-                assert_eq!(index_, vec_index_);
-                assert_eq!(hash, vec_hash);
-                assert_eq!(from_, vec_from_);
-                assert_eq!(to_, vec_to_);
-                assert_eq!(receipt_fields, vec_receipt_fields);
-                assert_eq!(object_fields, vec_object_fields);
+                assert_eq!(select_block_hash, vec_block_hash);
+                assert_eq!(select_block_number, select_block_level);
+                assert_eq!(select_index_, vec_index_);
+                assert_eq!(select_hash, vec_hash);
+                assert_eq!(select_from_, vec_from_);
+                assert_eq!(select_to_, vec_to_);
+                assert_eq!(select_receipt_fields, vec_receipt_fields);
+                assert_eq!(select_object_fields, vec_object_fields);
             }
 
             Ok(())
         })
     }
+
+    #[test]
+    fn test_transaction_batch_insert_clear() {
+        let connection = &mut establish_connection().unwrap();
+
+        connection.test_transaction::<_, Error, _>(|conn| {
+            let iter=5;
+            let inserted_block_hash: Vec<u8> = "block_hash".as_bytes().to_vec();
+            let inserted_block_number = Block::top_level(conn)? + 1;
+            let inserted_index_ = 0;
+            let inserted_from_ = "from_".as_bytes().to_vec();
+            let inserted_to_ = Some("to_".as_bytes().to_vec());
+            let inserted_receipt_fields = "receipt_fields".as_bytes().to_vec();
+            let inserted_object_fields = "object_fields".as_bytes().to_vec();
+
+            let mut batch=Vec::new();
+            for i in 0..iter{
+                
+                let inserted_hash: Vec<u8> = format!("transactionHash:{i}").as_bytes().to_vec();
+               
+                let transaction = Transaction {
+                    block_hash: inserted_block_hash.clone(),
+                    block_number: inserted_block_number,
+                    index_: inserted_index_,
+                    hash: inserted_hash.clone(),
+                    from_: inserted_from_.clone(),
+                    to_: inserted_to_.clone(),
+                    receipt_fields: inserted_receipt_fields.clone(),
+                    object_fields: inserted_object_fields.clone(),
+                };
+
+                batch.push(transaction);
+            }
+
+            Transaction::batch_insert(&batch, conn)?;
+            
+
+            
+            let expected_rows_cleared = iter as usize;
+
+            let rows_cleared = Transaction::clear_after(conn, inserted_block_number - 1)?;
+
+            assert_eq!(rows_cleared, expected_rows_cleared);
+            Ok(())
+        })
+    }
+
 }

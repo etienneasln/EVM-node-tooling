@@ -78,9 +78,7 @@ fn test_apply_blueprint_iterations() {
             let _ = PendingConfirmation::select_with_level(conn, blueprint.id);
             blueprint.insert(conn)?;
             block.insert(conn)?;
-            for tx in transactions {
-                tx.insert(conn)?;
-            }
+            Transaction::batch_insert(&transactions, conn)?;
             context_hash.insert(conn)?;
             let _history_mode = Metadata::get_history_mode(conn)?;
 

@@ -84,7 +84,7 @@ mod irmin_chunk_test {
 
             let expected_nth = (level_base, timestamp_base);
 
-            let nth = IrminChunk::nth(conn, i64::from(iter - 1) )?;
+            let nth = IrminChunk::nth(conn, i64::from(iter - 1))?;
 
             assert_eq!(nth, expected_nth);
 

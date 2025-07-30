@@ -26,8 +26,8 @@ pub use l1l2levelrelationship::*;
 pub use metadata::*;
 pub use migration::*;
 pub use pendingconfirmation::*;
-pub use sequencerupgrade::*;
 pub use schema::*;
+pub use sequencerupgrade::*;
 pub use transaction::*;
 
 use diesel::{

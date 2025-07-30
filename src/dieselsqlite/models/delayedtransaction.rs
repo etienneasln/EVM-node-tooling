@@ -1,4 +1,7 @@
-use crate::dieselsqlite::{models::cast_hash_comparison, schema::delayed_transactions};
+use crate::dieselsqlite::{
+    models::cast_hash_comparison,
+    schema::{delayed_transactions, delayed_transactions::dsl::*},
+};
 use diesel::{dsl::*, prelude::*};
 
 #[derive(Queryable, Selectable, Insertable)]
@@ -12,7 +15,6 @@ pub struct DelayedTransaction {
 
 impl DelayedTransaction {
     pub fn insert(self, connection: &mut SqliteConnection) -> QueryResult<usize> {
-        use crate::dieselsqlite::schema::delayed_transactions::dsl::*;
         let inserted_rows = self.insert_into(delayed_transactions).execute(connection)?;
         Ok(inserted_rows)
     }
@@ -21,7 +23,6 @@ impl DelayedTransaction {
         connection: &mut SqliteConnection,
         queried_injected_before: i32,
     ) -> QueryResult<Vec<u8>> {
-        use crate::dieselsqlite::schema::delayed_transactions::dsl::*;
         let p = delayed_transactions
             .filter(injected_before.eq(queried_injected_before))
             .select(payload)
@@ -33,8 +34,6 @@ impl DelayedTransaction {
         connection: &mut SqliteConnection,
         queried_hash: &Vec<u8>,
     ) -> QueryResult<Vec<u8>> {
-        use crate::dieselsqlite::schema::delayed_transactions::dsl::*;
-
         let pld = delayed_transactions
             .filter(cast_hash_comparison(queried_hash))
             .select(payload)
@@ -46,7 +45,6 @@ impl DelayedTransaction {
         connection: &mut SqliteConnection,
         queried_level: i32,
     ) -> QueryResult<usize> {
-        use crate::dieselsqlite::schema::delayed_transactions::dsl::*;
         let cleared_rows = delete(delayed_transactions.filter(injected_before.gt(queried_level)))
             .execute(connection)?;
         Ok(cleared_rows)
@@ -56,7 +54,6 @@ impl DelayedTransaction {
         connection: &mut SqliteConnection,
         queried_level: i32,
     ) -> QueryResult<usize> {
-        use crate::dieselsqlite::schema::delayed_transactions::dsl::*;
         let cleared_rows = delete(delayed_transactions.filter(injected_before.lt(queried_level)))
             .execute(connection)?;
         Ok(cleared_rows)
