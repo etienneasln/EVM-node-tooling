@@ -7,6 +7,7 @@ use diesel::{dsl::*, prelude::*};
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = transactions)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(treat_none_as_default_value = false)]
 pub struct Transaction {
     pub block_hash: Vec<u8>,
     pub block_number: i32,
