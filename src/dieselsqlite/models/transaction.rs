@@ -266,7 +266,7 @@ mod transaction_test {
                 batch.push(transaction);
             }
 
-            Transaction::batch_insert(conn,&batch)?;
+            Transaction::batch_insert(conn, &batch)?;
 
             let expected_rows_cleared = iter as usize;
 

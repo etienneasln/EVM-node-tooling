@@ -1,6 +1,7 @@
 use diesel::{ExpressionMethods, debug_query, dsl::*, sqlite::Sqlite};
 use evmnodetooling::dieselsqlite::{
-    establish_connection, models::*, schema::kernel_upgrades::dsl::*, schema::transactions::dsl::transactions
+    establish_connection, models::*, schema::kernel_upgrades::dsl::*,
+    schema::transactions::dsl::transactions,
 };
 
 fn main() {
@@ -122,7 +123,7 @@ fn main() {
     println!("Latest unapplied:{:?}", latest_unapplied);
     let _ = KernelUpgrade::clear_after(connection, 999);
 
-    let iter=5;
+    let iter = 5;
     let inserted_block_hash: Vec<u8> = "block_hash".as_bytes().to_vec();
     let inserted_block_number = Block::top_level(connection).unwrap() + 1;
     let inserted_index_ = 0;
@@ -131,11 +132,10 @@ fn main() {
     let inserted_receipt_fields = "receipt_fields".as_bytes().to_vec();
     let inserted_object_fields = "object_fields".as_bytes().to_vec();
 
-    let mut batch=Vec::new();
-    for i in 0..iter{
-        
+    let mut batch = Vec::new();
+    for i in 0..iter {
         let inserted_hash: Vec<u8> = format!("transactionHash:{i}").as_bytes().to_vec();
-        
+
         let transaction = Transaction {
             block_hash: inserted_block_hash.clone(),
             block_number: inserted_block_number,
@@ -150,9 +150,8 @@ fn main() {
         batch.push(transaction);
     }
 
-    let binding3= insert_into(transactions)
-            .values(&batch);
-            
+    let binding3 = insert_into(transactions).values(&batch);
+
     let sql = debug_query::<Sqlite, _>(&binding3);
     println!("Batch inserts:{:?}", sql);
 }

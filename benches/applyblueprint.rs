@@ -106,7 +106,7 @@ fn run_insert_transactions(
 ) {
     let transactions = generate_transactions_with_hash(transactions, *insert_id, bytes);
 
-    let _ = Transaction::batch_insert(&transactions, connection);
+    let _ = Transaction::batch_insert(connection, &transactions);
 
     *insert_id += 1;
 }
@@ -221,7 +221,7 @@ fn run_apply_blueprint(
             };
             block.insert(conn)?;
             let transactions = generate_transactions_with_hash(&transactions, *insert_id, bytes);
-            Transaction::batch_insert( conn,&transactions)?;
+            Transaction::batch_insert(conn, &transactions)?;
             let context_hash = ContextHash {
                 id: *insert_id,
                 context_hash: context_hash.clone(),
