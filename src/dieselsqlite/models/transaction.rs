@@ -26,8 +26,8 @@ impl Transaction {
     }
 
     pub fn batch_insert(
-        batch: &Vec<Self>,
         connection: &mut SqliteConnection,
+        batch: &Vec<Self>,
     ) -> QueryResult<usize> {
         let inserted_rows = insert_into(transactions)
             .values(batch)
@@ -239,7 +239,7 @@ mod transaction_test {
         let connection = &mut establish_connection().unwrap();
 
         connection.test_transaction::<_, Error, _>(|conn| {
-            let iter=5;
+            let iter = 5;
             let inserted_block_hash: Vec<u8> = "block_hash".as_bytes().to_vec();
             let inserted_block_number = Block::top_level(conn)? + 1;
             let inserted_index_ = 0;
@@ -248,11 +248,10 @@ mod transaction_test {
             let inserted_receipt_fields = "receipt_fields".as_bytes().to_vec();
             let inserted_object_fields = "object_fields".as_bytes().to_vec();
 
-            let mut batch=Vec::new();
-            for i in 0..iter{
-                
+            let mut batch = Vec::new();
+            for i in 0..iter {
                 let inserted_hash: Vec<u8> = format!("transactionHash:{i}").as_bytes().to_vec();
-               
+
                 let transaction = Transaction {
                     block_hash: inserted_block_hash.clone(),
                     block_number: inserted_block_number,
@@ -267,10 +266,8 @@ mod transaction_test {
                 batch.push(transaction);
             }
 
-            Transaction::batch_insert(&batch, conn)?;
-            
+            Transaction::batch_insert(conn,&batch)?;
 
-            
             let expected_rows_cleared = iter as usize;
 
             let rows_cleared = Transaction::clear_after(conn, inserted_block_number - 1)?;
@@ -279,5 +276,4 @@ mod transaction_test {
             Ok(())
         })
     }
-
 }
