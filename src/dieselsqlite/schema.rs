@@ -67,15 +67,7 @@ diesel::table! {
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(
-    block_storage_mode,
-    delayed_transactions,
-    irmin_chunks,
-    kernel_upgrades,
-    l1_l2_finalized_levels,
-    metadata,
-    sequencer_upgrades,
-);
+diesel::allow_tables_to_appear_in_same_query!(blocks, context_hashes);
 
 //WRITTEN MANUALLY
 
@@ -139,3 +131,5 @@ diesel::table! {
         sql->Text,
     }
 }
+
+diesel::joinable!(context_hashes -> blocks (id));
