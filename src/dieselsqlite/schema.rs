@@ -67,7 +67,6 @@ diesel::table! {
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(blocks, context_hashes);
 
 //WRITTEN MANUALLY
 
@@ -131,5 +130,7 @@ diesel::table! {
         sql->Text,
     }
 }
+
+diesel::allow_tables_to_appear_in_same_query!(blocks, context_hashes);
 
 diesel::joinable!(context_hashes -> blocks (id));
