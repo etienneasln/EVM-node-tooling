@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use criterion::{Criterion, criterion_group, criterion_main};
 use diesel::{Connection, SqliteConnection, result::Error};
 use evmnodetooling::dieselsqlite::{models::*, *};
@@ -163,6 +165,8 @@ fn run_select_history_mode(connection: &mut SqliteConnection) {
 }
 
 fn criterion_apply_blueprint(c: &mut Criterion) {
+    let mut group = c.benchmark_group("Apply blueprint group");
+
     let block_number = load_block_number();
 
     let connection = &mut establish_connection().unwrap();
@@ -176,7 +180,11 @@ fn criterion_apply_blueprint(c: &mut Criterion) {
     let transactions = select_transactions(connection, select_id);
     let context_hash = ContextHash::select(connection, select_id).unwrap();
 
-    c.bench_function("Apply blueprint", |b| {
+    group.warm_up_time(Duration::from_millis(500));
+    group.measurement_time(Duration::from_secs(3));
+    group.sample_size(50);
+
+    group.bench_function("Apply blueprint", |b| {
         b.iter(|| {
             run_apply_blueprint(
                 connection,
@@ -192,6 +200,8 @@ fn criterion_apply_blueprint(c: &mut Criterion) {
     });
 
     let _ = clear_after_apply_blueprint(connection, base_insert_id);
+
+    group.finish();
 }
 
 fn run_apply_blueprint(
@@ -222,6 +232,9 @@ fn run_apply_blueprint(
             block.insert(conn)?;
             let transactions = generate_transactions_with_hash(&transactions, *insert_id, bytes);
             Transaction::batch_insert(conn, &transactions)?;
+            // for tx in transactions{
+            //     tx.insert(conn)?;
+            // }
             let context_hash = ContextHash {
                 id: *insert_id,
                 context_hash: context_hash.clone(),
